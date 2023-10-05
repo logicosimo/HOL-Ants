@@ -286,23 +286,23 @@ let DICT_COLLECT = new_definition
 (* Dictionary associated to a function.                                      *)
 (* ------------------------------------------------------------------------- *)
 
-let DICTFUN = new_definition
-  `DICTFUN K (f:A->B) = Dict(\k. if k IN K then SOME (f k) else NONE)`;;
+let FUNDICT = new_definition
+  `FUNDICT K (f:A->B) = Dict(\k. if k IN K then SOME (f k) else NONE)`;;
 
-let LOOKUPOPT_DICTFUN = prove
- (`!K f:A->B k. LOOKUPOPT (DICTFUN K f) k =
+let LOOKUPOPT_FUNDICT = prove
+ (`!K f:A->B k. LOOKUPOPT (FUNDICT K f) k =
                 if k IN K then SOME (f k) else NONE`,
-  REWRITE_TAC[DICTFUN; LOOKUPOPT]);;
+  REWRITE_TAC[FUNDICT; LOOKUPOPT]);;
 
-let KEYS_DICTFUN = prove
- (`!K f:A->B. KEYS (DICTFUN K f) = K`,
-  REWRITE_TAC[EXTENSION; IN_KEYS; LOOKUPOPT_DICTFUN] THEN REPEAT GEN_TAC THEN
+let KEYS_FUNDICT = prove
+ (`!K f:A->B. KEYS (FUNDICT K f) = K`,
+  REWRITE_TAC[EXTENSION; IN_KEYS; LOOKUPOPT_FUNDICT] THEN REPEAT GEN_TAC THEN
   COND_CASES_TAC THEN REWRITE_TAC[ISSOME]);;
 
-let LOOKUP_DICTFUN = prove
- (`!K f:A->B k. LOOKUP (DICTFUN K f) k =
+let LOOKUP_FUNDICT = prove
+ (`!K f:A->B k. LOOKUP (FUNDICT K f) k =
                 if k IN K then f k else GETOPTION NONE`,
-  REWRITE_TAC[LOOKUP; LOOKUPOPT_DICTFUN] THEN REPEAT GEN_TAC THEN
+  REWRITE_TAC[LOOKUP; LOOKUPOPT_FUNDICT] THEN REPEAT GEN_TAC THEN
   COND_CASES_TAC THEN REWRITE_TAC[ISSOME; GETOPTION]);;
 
 (* ------------------------------------------------------------------------- *)
@@ -311,17 +311,17 @@ let LOOKUP_DICTFUN = prove
 
 let DICT_MAP = new_definition
   `DICT_MAP (f:A->B) (d:(K,A)dict) : (K,B)dict =
-   DICTFUN (KEYS d) (\k. f (LOOKUP d k))`;;
+   FUNDICT (KEYS d) (\k. f (LOOKUP d k))`;;
 
 let KEYS_DICT_MAP = prove
  (`!f:A->B d:(K,A)dict. KEYS (DICT_MAP f d) = KEYS d`,
-   REWRITE_TAC[DICT_MAP; KEYS_DICTFUN]);;
+   REWRITE_TAC[DICT_MAP; KEYS_FUNDICT]);;
 
 let LOOKUP_DICT_MAP = prove
  (`!f:A->B d:(K,A)dict k.
      LOOKUP (DICT_MAP f d) k =
      if k IN KEYS d then f (LOOKUP d k) else GETOPTION NONE`,
-   REPEAT GEN_TAC THEN REWRITE_TAC[DICT_MAP; LOOKUP_DICTFUN] THEN
+   REPEAT GEN_TAC THEN REWRITE_TAC[DICT_MAP; LOOKUP_FUNDICT] THEN
    COND_CASES_TAC THEN ASM_REWRITE_TAC[]);;
 
 let DICT_MAP_EMPTYDICT = prove
@@ -331,17 +331,17 @@ let DICT_MAP_EMPTYDICT = prove
 
 let DICT_IMAP = new_definition
   `DICT_IMAP (f:K->A->B) (d:(K,A)dict) : (K,B)dict =
-   DICTFUN (KEYS d) (\k. f k (LOOKUP d k))`;;
+   FUNDICT (KEYS d) (\k. f k (LOOKUP d k))`;;
 
 let KEYS_DICT_IMAP = prove
  (`!f:K->A->B d:(K,A)dict. KEYS (DICT_IMAP f d) = KEYS d`,
-   REWRITE_TAC[DICT_IMAP; KEYS_DICTFUN]);;
+   REWRITE_TAC[DICT_IMAP; KEYS_FUNDICT]);;
 
 let LOOKUP_DICT_IMAP = prove
  (`!f:K->A->B d:(K,A)dict k.
      LOOKUP (DICT_IMAP f d) k =
      if k IN KEYS d then f k (LOOKUP d k) else GETOPTION NONE`,
-   REPEAT GEN_TAC THEN REWRITE_TAC[DICT_IMAP; LOOKUP_DICTFUN] THEN
+   REPEAT GEN_TAC THEN REWRITE_TAC[DICT_IMAP; LOOKUP_FUNDICT] THEN
    COND_CASES_TAC THEN ASM_REWRITE_TAC[]);;
 
 (* ------------------------------------------------------------------------- *)
@@ -364,10 +364,10 @@ let DICT_VALS_PAIRDICT = prove
   REWRITE_TAC[EXTENSION; DICT_VALS; IN_SING; KEYS_PAIRDICT;
               IMAGE_CLAUSES; LOOKUP_PAIRDICT]);;
 
-let DICT_VALS_DICTFUN = prove
- (`!K f:A->B. DICT_VALS (DICTFUN K f) = IMAGE f K`,
-  REPEAT GEN_TAC THEN REWRITE_TAC[DICT_VALS; KEYS_DICTFUN; LOOKUP_DICTFUN] THEN
-  MATCH_MP_TAC IMAGE_EQ THEN SIMP_TAC[LOOKUP_DICTFUN]);;
+let DICT_VALS_FUNDICT = prove
+ (`!K f:A->B. DICT_VALS (FUNDICT K f) = IMAGE f K`,
+  REPEAT GEN_TAC THEN REWRITE_TAC[DICT_VALS; KEYS_FUNDICT; LOOKUP_FUNDICT] THEN
+  MATCH_MP_TAC IMAGE_EQ THEN SIMP_TAC[LOOKUP_FUNDICT]);;
 
 (* ------------------------------------------------------------------------- *)
 (* Transposed dictionary.                                                    *)
@@ -375,17 +375,17 @@ let DICT_VALS_DICTFUN = prove
 
 let DICT_TRANSPOSE = new_definition
   `DICT_TRANSPOSE (d:(K,V)dict) : (V,K->bool)dict =
-   DICTFUN (DICT_VALS d) (\v. {k | k IN KEYS d /\ LOOKUP d k = v})`;;
+   FUNDICT (DICT_VALS d) (\v. {k | k IN KEYS d /\ LOOKUP d k = v})`;;
 
 let KEYS_DICT_TRANSPOSE = prove
  (`!d:(K,V)dict. KEYS (DICT_TRANSPOSE d) = DICT_VALS d`,
-  REWRITE_TAC[DICT_TRANSPOSE; KEYS_DICTFUN]);;
+  REWRITE_TAC[DICT_TRANSPOSE; KEYS_FUNDICT]);;
 
 let LOOKUP_DICT_TRANSPOSE = prove
  (`!d:(K,V)dict v.
      v IN DICT_VALS d
      ==> LOOKUP (DICT_TRANSPOSE d) v = {k | k IN KEYS d /\ LOOKUP d k = v}`,
-  SIMP_TAC[DICT_TRANSPOSE; LOOKUP_DICTFUN]);;
+  SIMP_TAC[DICT_TRANSPOSE; LOOKUP_FUNDICT]);;
 
 (* ------------------------------------------------------------------------- *)
 (* Monoidal combination of two dictionaries.                                 *)
@@ -394,7 +394,7 @@ let LOOKUP_DICT_TRANSPOSE = prove
 
 let DICT_MONOIDAL_COMBINE = new_definition
   `DICT_MONOIDAL_COMBINE op d1 d2 : (K,V)dict =
-   DICTFUN (KEYS d1 UNION KEYS d2)
+   FUNDICT (KEYS d1 UNION KEYS d2)
            (\k. if k IN KEYS d1
                 then if k IN KEYS d2
                      then op (LOOKUP d1 k) (LOOKUP d2 k)
@@ -404,7 +404,7 @@ let DICT_MONOIDAL_COMBINE = new_definition
 let KEYS_DICT_MONOIDAL_COMBINE = prove
  (`!op d1 d2:(K,V)dict. KEYS (DICT_MONOIDAL_COMBINE op d1 d2) =
                         KEYS d1 UNION KEYS d2`,
-  REWRITE_TAC[DICT_MONOIDAL_COMBINE; KEYS_DICTFUN]);;
+  REWRITE_TAC[DICT_MONOIDAL_COMBINE; KEYS_FUNDICT]);;
 
 let LOOKUP_DICT_MONOIDAL_COMBINE = prove
  (`!op d1 d2:(K,V)dict k.
@@ -417,5 +417,5 @@ let LOOKUP_DICT_MONOIDAL_COMBINE = prove
           then LOOKUP d2 k
           else GETOPTION NONE`,
   REPEAT GEN_TAC THEN
-  REWRITE_TAC[DICT_MONOIDAL_COMBINE; LOOKUP_DICTFUN; IN_UNION] THEN
+  REWRITE_TAC[DICT_MONOIDAL_COMBINE; LOOKUP_FUNDICT; IN_UNION] THEN
   ASM_CASES_TAC `k IN KEYS (d1:(K,V)dict)` THEN ASM_REWRITE_TAC[]);;
