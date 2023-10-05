@@ -3,6 +3,14 @@
 (* ========================================================================= *)
 
 (* ------------------------------------------------------------------------- *)
+(* Miscellanea.                                                              *)
+(* ------------------------------------------------------------------------- *)
+
+let IMAGE_EQ = prove
+ (`!f g:A->B s. (!x. x IN s ==> f x = g x) ==> IMAGE f s = IMAGE g s`,
+  REWRITE_TAC[EXTENSION; IN_IMAGE] THEN METIS_TAC[]);;
+
+(* ------------------------------------------------------------------------- *)
 (* Options.                                                                  *)
 (* ------------------------------------------------------------------------- *)
 
@@ -335,3 +343,28 @@ let LOOKUP_DICT_IMAP = prove
      if k IN KEYS d then f k (LOOKUP d k) else GETOPTION NONE`,
    REPEAT GEN_TAC THEN REWRITE_TAC[DICT_IMAP; LOOKUP_DICTFUN] THEN
    COND_CASES_TAC THEN ASM_REWRITE_TAC[]);;
+
+(* ------------------------------------------------------------------------- *)
+(* Values of a dictionary.                                                   *)
+(* ------------------------------------------------------------------------- *)
+
+let DICT_VALS = new_definition
+  `DICT_VALS (d:(K,V)dict) : V->bool = IMAGE (LOOKUP d) (KEYS d)`;;
+
+let IN_DICT_VALS = prove
+ (`!v d:(K,V)dict. v IN DICT_VALS d <=> ?k. k IN KEYS d /\ LOOKUP d k = v`,
+  REWRITE_TAC[DICT_VALS; IN_IMAGE] THEN MESON_TAC[]);;
+
+let DICT_VALS_EMPTYDICT = prove
+ (`DICT_VALS (EMPTYDICT:(K,V)dict) = {}`,
+  REWRITE_TAC[EXTENSION; IN_DICT_VALS; KEYS_EMPTYDICT; NOT_IN_EMPTY]);;
+
+let DICT_VALS_PAIRDICT = prove
+ (`!k:K v:V. DICT_VALS (k => v) = {v}`,
+  REWRITE_TAC[EXTENSION; DICT_VALS; IN_SING; KEYS_PAIRDICT;
+              IMAGE_CLAUSES; LOOKUP_PAIRDICT]);;
+
+let DICT_VALS_DICTFUN = prove
+ (`!K f:A->B. DICT_VALS (DICTFUN K f) = IMAGE f K`,
+  REPEAT GEN_TAC THEN REWRITE_TAC[DICT_VALS; KEYS_DICTFUN; LOOKUP_DICTFUN] THEN
+  MATCH_MP_TAC IMAGE_EQ THEN SIMP_TAC[LOOKUP_DICTFUN]);;
