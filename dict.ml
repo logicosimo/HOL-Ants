@@ -106,6 +106,12 @@ let LOOKUPOPT_EQ_SOME = prove
 let LOOKUPDEFAULT = new_definition
   `LOOKUPDEFAULT (d:(A,B)dict) a k = DEFAULT a (LOOKUPOPT d k)`;;
 
+let LOOKUPOPT_EQ_LOOKUP = prove
+ (`!d:(K,V)dict k.
+     LOOKUPOPT d k = if k IN KEYS d then SOME (LOOKUP d k) else NONE`,
+  REPEAT GEN_TAC THEN COND_CASES_TAC THEN
+  ASM_SIMP_TAC[LOOKUPOPT_EQ_SOME; LOOKUPOPT_EQ_NONE]);;
+
 let DICT_LOOKUP_EXTENSION = prove
  (`!d1 d2:(A,B)dict.
      d1 = d2 <=> KEYS d1 = KEYS d2 /\
@@ -122,29 +128,6 @@ let DICT_LOOKUP_EXTENSION = prove
   STRUCT_CASES_TAC (ISPEC `LOOKUPOPT (d1:(A,B)dict) k` (cases "option")) THEN
   STRUCT_CASES_TAC (ISPEC `LOOKUPOPT (d2:(A,B)dict) k` (cases "option")) THEN
   REWRITE_TAC[ISSOME; GETOPTION; option_INJ]);;
-
-(* ------------------------------------------------------------------------- *)
-(* Empty dictionary.                                                         *)
-(* ------------------------------------------------------------------------- *)
-
-let EMPTYDICT = new_definition
-  `EMPTYDICT : (A,B)dict = Dict(\k. NONE)`;;
-
-let LOOKUPOPT_EMPTYDICT = prove
- (`!k. LOOKUPOPT (EMPTYDICT:(A,B)dict) k = NONE`,
-  REWRITE_TAC[EMPTYDICT; LOOKUPOPT]);;
-
-let KEYS_EMPTYDICT = prove
- (`KEYS (EMPTYDICT:(A,B)dict) = {}`,
-  REWRITE_TAC[EXTENSION; IN_KEYS; NOT_IN_EMPTY; LOOKUPOPT_EMPTYDICT; ISSOME]);;
-
-let LOOKUP_EMPTYDICT = prove
- (`!k. LOOKUP (EMPTYDICT:(A,B)dict) k = GETOPTION NONE`,
-  REWRITE_TAC[LOOKUP; LOOKUPOPT_EMPTYDICT]);;
-
-let LOOKUPDEFAULT_EMPTYDICT = prove
- (`!a k. LOOKUPDEFAULT (EMPTYDICT:(A,B)dict) a k = a`,
-  REWRITE_TAC[LOOKUPDEFAULT; LOOKUPOPT_EMPTYDICT; DEFAULT]);;
 
 (* ------------------------------------------------------------------------- *)
 (* Updating a dictionary.                                                    *)
@@ -182,7 +165,8 @@ let LOOKUPDEFAULT_UPDATE = prove
 (* ------------------------------------------------------------------------- *)
 
 let REMOVE = new_definition
-  `REMOVE (d:(A,B)dict) k0 = Dict(\k. if k = k0 then NONE else LOOKUPOPT d k)`;;
+  `REMOVE (d:(A,B)dict) k0 =
+   Dict(\k. if k = k0 then NONE else LOOKUPOPT d k)`;;
 
 let LOOKUPOPT_REMOVE = prove
  (`!d k0 k. LOOKUPOPT (REMOVE (d:(A,B)dict) k0) k =
@@ -208,28 +192,74 @@ let LOOKUPDEFAULT_REMOVE = prove
   COND_CASES_TAC THEN ASM_REWRITE_TAC[DEFAULT]);;
 
 (* ------------------------------------------------------------------------- *)
+(* Dictionary associated to a function.                                      *)
+(* ------------------------------------------------------------------------- *)
+
+let FUNDICT = new_definition
+  `FUNDICT K (f:A->B) = Dict(\k. if k IN K then SOME (f k) else NONE)`;;
+
+let LOOKUPOPT_FUNDICT = prove
+ (`!K f:A->B k. LOOKUPOPT (FUNDICT K f) k =
+                if k IN K then SOME (f k) else NONE`,
+  REWRITE_TAC[FUNDICT; LOOKUPOPT]);;
+
+let KEYS_FUNDICT = prove
+ (`!K f:A->B. KEYS (FUNDICT K f) = K`,
+  REWRITE_TAC[EXTENSION; IN_KEYS; LOOKUPOPT_FUNDICT] THEN REPEAT GEN_TAC THEN
+  COND_CASES_TAC THEN REWRITE_TAC[ISSOME]);;
+
+let LOOKUP_FUNDICT = prove
+ (`!K f:A->B k. LOOKUP (FUNDICT K f) k =
+                if k IN K then f k else GETOPTION NONE`,
+  REWRITE_TAC[LOOKUP; LOOKUPOPT_FUNDICT] THEN REPEAT GEN_TAC THEN
+  COND_CASES_TAC THEN REWRITE_TAC[ISSOME; GETOPTION]);;
+
+(* ------------------------------------------------------------------------- *)
+(* Empty dictionary.                                                         *)
+(* ------------------------------------------------------------------------- *)
+
+let EMPTYDICT = new_definition
+  `EMPTYDICT : (A,B)dict = FUNDICT {} ARB`;;
+
+let KEYS_EMPTYDICT = prove
+ (`KEYS (EMPTYDICT:(A,B)dict) = {}`,
+  REWRITE_TAC[EMPTYDICT; KEYS_FUNDICT]);;
+
+let LOOKUP_EMPTYDICT = prove
+ (`!k. LOOKUP (EMPTYDICT:(A,B)dict) k = GETOPTION NONE`,
+  REWRITE_TAC[EMPTYDICT; LOOKUP_FUNDICT; NOT_IN_EMPTY]);;
+
+let LOOKUPOPT_EMPTYDICT = prove
+ (`!k. LOOKUPOPT (EMPTYDICT:(A,B)dict) k = NONE`,
+  REWRITE_TAC[LOOKUPOPT_EQ_LOOKUP; KEYS_EMPTYDICT; NOT_IN_EMPTY]);;
+
+let LOOKUPDEFAULT_EMPTYDICT = prove
+ (`!a k. LOOKUPDEFAULT (EMPTYDICT:(A,B)dict) a k = a`,
+  REWRITE_TAC[LOOKUPDEFAULT; LOOKUPOPT_EMPTYDICT; DEFAULT]);;
+
+(* ------------------------------------------------------------------------- *)
 (* Dictionary with a single association.                                     *)
 (* ------------------------------------------------------------------------- *)
 
 parse_as_infix("=>",(12,"right"));;
 
 let PAIRDICT = new_definition
-  `(k:A => v:B) = Dict(\l. if l = k then SOME v else NONE)`;;
-
-let LOOKUPOPT_PAIRDICT = prove
- (`!k:A v:B l. LOOKUPOPT (k => v) l = if l = k then SOME v else NONE`,
-  REWRITE_TAC[PAIRDICT; LOOKUPOPT]);;
+  `(k:A => v:B) = FUNDICT {k} (\k. v)`;;
 
 let KEYS_PAIRDICT = prove
  (`!k:A v:B. KEYS (k => v) = {k}`,
-  REWRITE_TAC[EXTENSION; IN_KEYS; LOOKUPOPT_PAIRDICT;
-              IN_INSERT; NOT_IN_EMPTY] THEN
-  REPEAT GEN_TAC THEN  COND_CASES_TAC THEN ASM_REWRITE_TAC[ISSOME]);;
+  REWRITE_TAC[PAIRDICT; KEYS_FUNDICT]);;
 
 let LOOKUP_PAIRDICT = prove
  (`!k:A v:B l. LOOKUP (k => v) l = if l = k then v else GETOPTION NONE`,
-  REPEAT GEN_TAC THEN REWRITE_TAC[LOOKUP; LOOKUPOPT_PAIRDICT] THEN
-  COND_CASES_TAC THEN ASM_REWRITE_TAC[GETOPTION]);;
+  REWRITE_TAC[PAIRDICT; LOOKUP_FUNDICT; IN_SING]);;
+
+let LOOKUPOPT_PAIRDICT = prove
+ (`!k:A v:B l. LOOKUPOPT (k => v) l = if l = k then SOME v else NONE`,
+  REPEAT GEN_TAC THEN
+  REWRITE_TAC[LOOKUPOPT_EQ_LOOKUP; KEYS_PAIRDICT; IN_SING;
+              LOOKUP_PAIRDICT] THEN
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[]);;
 
 let LOOKUPDEFAULT_PAIRDICT = prove
  (`!k:A v:B a l. LOOKUPDEFAULT (k => v) a l = if l = k then v else a`,
@@ -273,29 +303,6 @@ let LOOKUP_DICT_COMBINE = prove
          op (LOOKUP d1 k) (LOOKUP d2 k)`,
   REPEAT GEN_TAC THEN REWRITE_TAC[LOOKUP; LOOKUPOPT_DICT_COMBINE] THEN
   SIMP_TAC[LOOKUPOPT_EQ_SOME] THEN REWRITE_TAC[GETOPTION; lifted]);;
-
-(* ------------------------------------------------------------------------- *)
-(* Dictionary associated to a function.                                      *)
-(* ------------------------------------------------------------------------- *)
-
-let FUNDICT = new_definition
-  `FUNDICT K (f:A->B) = Dict(\k. if k IN K then SOME (f k) else NONE)`;;
-
-let LOOKUPOPT_FUNDICT = prove
- (`!K f:A->B k. LOOKUPOPT (FUNDICT K f) k =
-                if k IN K then SOME (f k) else NONE`,
-  REWRITE_TAC[FUNDICT; LOOKUPOPT]);;
-
-let KEYS_FUNDICT = prove
- (`!K f:A->B. KEYS (FUNDICT K f) = K`,
-  REWRITE_TAC[EXTENSION; IN_KEYS; LOOKUPOPT_FUNDICT] THEN REPEAT GEN_TAC THEN
-  COND_CASES_TAC THEN REWRITE_TAC[ISSOME]);;
-
-let LOOKUP_FUNDICT = prove
- (`!K f:A->B k. LOOKUP (FUNDICT K f) k =
-                if k IN K then f k else GETOPTION NONE`,
-  REWRITE_TAC[LOOKUP; LOOKUPOPT_FUNDICT] THEN REPEAT GEN_TAC THEN
-  COND_CASES_TAC THEN REWRITE_TAC[ISSOME; GETOPTION]);;
 
 (* ------------------------------------------------------------------------- *)
 (* Mapping on dictionary values                                              *)
@@ -415,10 +422,6 @@ let LOOKUP_DICT_MONOIDAL_COMBINE = prove
 (* ------------------------------------------------------------------------- *)
 (* From multivalued dictionaries to set of dictionaries.                     *)
 (* ------------------------------------------------------------------------- *)
-
-(* let DICT_COLLECT = new_definition
-  `DICT_COLLECT (d:(K,V->bool)dict) : (K,V)dict->bool =
-   {e | KEYS e = KEYS d /\ !k. k IN KEYS e ==> LOOKUP e k IN LOOKUP d k}`;; *)
 
 let DICT_COLLECT = new_definition
   `DICT_COLLECT (d:(K,V->bool)dict) : (K,V)dict->bool =
