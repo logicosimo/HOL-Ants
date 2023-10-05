@@ -8,7 +8,7 @@
 
 let IMAGE_EQ = prove
  (`!f g:A->B s. (!x. x IN s ==> f x = g x) ==> IMAGE f s = IMAGE g s`,
-  REWRITE_TAC[EXTENSION; IN_IMAGE] THEN METIS_TAC[]);;
+  REWRITE_TAC[EXTENSION; IN_IMAGE] THEN MESON_TAC[]);;
 
 (* ------------------------------------------------------------------------- *)
 (* Options.                                                                  *)
@@ -52,7 +52,8 @@ let NOT_ISNONE = prove
 let OPTION_EXTENSION = prove
  (`!x y:A option. x = y <=> (ISSOME x <=> ISSOME y) /\
                             GETOPTION x = GETOPTION y`,
-  REWRITE_TAC[FORALL_OPTION_THM; ISSOME; GETOPTION; option_DISTINCT; option_INJ]);;
+  REWRITE_TAC[FORALL_OPTION_THM; ISSOME; GETOPTION;
+              option_DISTINCT; option_INJ]);;
 
 (* ------------------------------------------------------------------------- *)
 (* Dictionaries.                                                             *)
@@ -391,8 +392,8 @@ let GET_DICT_TRANSPOSE = prove
 (* (Sensible definition when op is monoidal)                                 *)
 (* ------------------------------------------------------------------------- *)
 
-let DICT_MONOIDAL_COMBINE = new_definition
-  `DICT_MONOIDAL_COMBINE op d1 d2 : (K,V)dict =
+let DICT_MERGE = new_definition
+  `DICT_MERGE op d1 d2 : (K,V)dict =
    FUNDICT (KEYS d1 UNION KEYS d2)
            (\k. if k IN KEYS d1
                 then if k IN KEYS d2
@@ -400,14 +401,14 @@ let DICT_MONOIDAL_COMBINE = new_definition
                      else GET d1 k
                 else GET d2 k)`;;
 
-let KEYS_DICT_MONOIDAL_COMBINE = prove
- (`!op d1 d2:(K,V)dict. KEYS (DICT_MONOIDAL_COMBINE op d1 d2) =
+let KEYS_DICT_MERGE = prove
+ (`!op d1 d2:(K,V)dict. KEYS (DICT_MERGE op d1 d2) =
                         KEYS d1 UNION KEYS d2`,
-  REWRITE_TAC[DICT_MONOIDAL_COMBINE; KEYS_FUNDICT]);;
+  REWRITE_TAC[DICT_MERGE; KEYS_FUNDICT]);;
 
-let GET_DICT_MONOIDAL_COMBINE = prove
+let GET_DICT_MERGE = prove
  (`!op d1 d2:(K,V)dict k.
-     GET (DICT_MONOIDAL_COMBINE op d1 d2) k =
+     GET (DICT_MERGE op d1 d2) k =
      if k IN KEYS d1
      then if k IN KEYS d2
           then op (GET d1 k) (GET d2 k)
@@ -416,7 +417,7 @@ let GET_DICT_MONOIDAL_COMBINE = prove
           then GET d2 k
           else GETOPTION NONE`,
   REPEAT GEN_TAC THEN
-  REWRITE_TAC[DICT_MONOIDAL_COMBINE; GET_FUNDICT; IN_UNION] THEN
+  REWRITE_TAC[DICT_MERGE; GET_FUNDICT; IN_UNION] THEN
   ASM_CASES_TAC `k IN KEYS (d1:(K,V)dict)` THEN ASM_REWRITE_TAC[]);;
 
 (* ------------------------------------------------------------------------- *)

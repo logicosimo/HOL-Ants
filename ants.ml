@@ -124,10 +124,9 @@ let ANT_STEP = new_definition
 
 let UPDATE_STIGMERGY = new_definition
   `UPDATE_STIGMERGY (st:status) : (num,num)dict =
-   DICT_MONOIDAL_COMBINE (+)
-     (ST_STIGMERGY st)
-     (DICT_MAP CARD
-               (DICT_TRANSPOSE (DICT_MAP FST (ST_ANTS st))))`;;
+   DICT_MERGE (+) (ST_STIGMERGY st)
+                  (DICT_MAP CARD
+                            (DICT_TRANSPOSE (DICT_MAP FST (ST_ANTS st))))`;;
 
 let EVOLUTION_STEP = new_definition
   `EVOLUTION_STEP (s:status) : status->bool =
