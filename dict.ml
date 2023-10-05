@@ -267,22 +267,6 @@ let LOOKUP_DICT_COMBINE = prove
   SIMP_TAC[LOOKUPOPT_EQ_SOME] THEN REWRITE_TAC[GETOPTION; lifted]);;
 
 (* ------------------------------------------------------------------------- *)
-(* Mapping on dictionary values                                              *)
-(* ------------------------------------------------------------------------- *)
-
-let DICT_MAP = new_definition
-  `DICT_MAP (f:A->B) (d:(K,A)dict) : (K,B)dict =
-   Dict(\k. OPTION_MAP f (LOOKUPOPT d k))`;;
-
-let DICT_IMAP = new_definition
-  `DICT_IMAP (f:K->A->B) (d:(K,A)dict) : (K,B)dict =
-   Dict(\k. OPTION_MAP (f k) (LOOKUPOPT d k))`;;
-
-(* let LOOKUPOPT_DICT_MAP = prove
-
-let LOOKUP_DICT_MAP = prove *)
-
-(* ------------------------------------------------------------------------- *)
 (* From multivalued dictionaries to set of dictionaries.                     *)
 (* ------------------------------------------------------------------------- *)
 
@@ -312,3 +296,42 @@ let LOOKUP_DICTFUN = prove
                 if k IN K then f k else GETOPTION NONE`,
   REWRITE_TAC[LOOKUP; LOOKUPOPT_DICTFUN] THEN REPEAT GEN_TAC THEN
   COND_CASES_TAC THEN REWRITE_TAC[ISSOME; GETOPTION]);;
+
+(* ------------------------------------------------------------------------- *)
+(* Mapping on dictionary values                                              *)
+(* ------------------------------------------------------------------------- *)
+
+let DICT_MAP = new_definition
+  `DICT_MAP (f:A->B) (d:(K,A)dict) : (K,B)dict =
+   DICTFUN (KEYS d) (\k. f (LOOKUP d k))`;;
+
+let KEYS_DICT_MAP = prove
+ (`!f:A->B d:(K,A)dict. KEYS (DICT_MAP f d) = KEYS d`,
+   REWRITE_TAC[DICT_MAP; KEYS_DICTFUN]);;
+
+let LOOKUP_DICT_MAP = prove
+ (`!f:A->B d:(K,A)dict k.
+     LOOKUP (DICT_MAP f d) k =
+     if k IN KEYS d then f (LOOKUP d k) else GETOPTION NONE`,
+   REPEAT GEN_TAC THEN REWRITE_TAC[DICT_MAP; LOOKUP_DICTFUN] THEN
+   COND_CASES_TAC THEN ASM_REWRITE_TAC[]);;
+
+let DICT_MAP_EMPTYDICT = prove
+ (`!f:U->V. DICT_MAP f EMPTYDICT : (K,V)dict = EMPTYDICT`,
+  REWRITE_TAC[DICT_LOOKUP_EXTENSION; KEYS_DICT_MAP;
+              KEYS_EMPTYDICT; NOT_IN_EMPTY]);;
+
+let DICT_IMAP = new_definition
+  `DICT_IMAP (f:K->A->B) (d:(K,A)dict) : (K,B)dict =
+   DICTFUN (KEYS d) (\k. f k (LOOKUP d k))`;;
+
+let KEYS_DICT_IMAP = prove
+ (`!f:K->A->B d:(K,A)dict. KEYS (DICT_IMAP f d) = KEYS d`,
+   REWRITE_TAC[DICT_IMAP; KEYS_DICTFUN]);;
+
+let LOOKUP_DICT_IMAP = prove
+ (`!f:K->A->B d:(K,A)dict k.
+     LOOKUP (DICT_IMAP f d) k =
+     if k IN KEYS d then f k (LOOKUP d k) else GETOPTION NONE`,
+   REPEAT GEN_TAC THEN REWRITE_TAC[DICT_IMAP; LOOKUP_DICTFUN] THEN
+   COND_CASES_TAC THEN ASM_REWRITE_TAC[]);;
