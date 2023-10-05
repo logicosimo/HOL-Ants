@@ -55,6 +55,20 @@ let OPTION_EXTENSION = prove
   REWRITE_TAC[FORALL_OPTION_THM; ISSOME; GETOPTION;
               option_DISTINCT; option_INJ]);;
 
+let OPTION_MERGE = define
+  `(!x y:A. OPTION_MERGE op (SOME x) (SOME y) = SOME (op x y)) /\
+   (!x. OPTION_MERGE op (SOME x) NONE = SOME x) /\
+   (!x. OPTION_MERGE op NONE (SOME x) = SOME x) /\
+   OPTION_MERGE op NONE NONE = NONE`;;
+
+let ISSOME_OPTION_MERGE = prove
+ (`!x y:A option. ISSOME (OPTION_MERGE op x y) <=> ISSOME x \/ ISSOME y`,
+  REWRITE_TAC[FORALL_OPTION_THM; OPTION_MERGE; ISSOME]);;
+
+let ISNONE_OPTION_MERGE = prove
+ (`!x y:A option. ISNONE (OPTION_MERGE op x y) <=> ISNONE x /\ ISNONE y`,
+  REWRITE_TAC[FORALL_OPTION_THM; OPTION_MERGE; ISNONE]);;
+
 (* ------------------------------------------------------------------------- *)
 (* Dictionaries.                                                             *)
 (* ------------------------------------------------------------------------- *)
@@ -394,17 +408,17 @@ let GET_DICT_TRANSPOSE = prove
 
 let DICT_MERGE = new_definition
   `DICT_MERGE op d1 d2 : (K,V)dict =
-   FUNDICT (KEYS d1 UNION KEYS d2)
-           (\k. if k IN KEYS d1
-                then if k IN KEYS d2
-                     then op (GET d1 k) (GET d2 k)
-                     else GET d1 k
-                else GET d2 k)`;;
+   Dict(\k. OPTION_MERGE op (LOOKUP d1 k) (LOOKUP d2 k))`;;
+
+let LOOKUP_DICT_MERGE = prove
+ (`!op d1 d2:(K,V)dict. LOOKUP (DICT_MERGE op d1 d2) k =
+                        OPTION_MERGE op (LOOKUP d1 k) (LOOKUP d2 k)`,
+  REWRITE_TAC[DICT_MERGE; LOOKUP]);;
 
 let KEYS_DICT_MERGE = prove
  (`!op d1 d2:(K,V)dict. KEYS (DICT_MERGE op d1 d2) =
                         KEYS d1 UNION KEYS d2`,
-  REWRITE_TAC[DICT_MERGE; KEYS_FUNDICT]);;
+  REWRITE_TAC[KEYS; LOOKUP_DICT_MERGE; ISSOME_OPTION_MERGE] THEN SET_TAC[]);;
 
 let GET_DICT_MERGE = prove
  (`!op d1 d2:(K,V)dict k.
@@ -416,9 +430,9 @@ let GET_DICT_MERGE = prove
      else if k IN KEYS d2
           then GET d2 k
           else GETOPTION NONE`,
-  REPEAT GEN_TAC THEN
-  REWRITE_TAC[DICT_MERGE; GET_FUNDICT; IN_UNION] THEN
-  ASM_CASES_TAC `k IN KEYS (d1:(K,V)dict)` THEN ASM_REWRITE_TAC[]);;
+  REPEAT GEN_TAC THEN REWRITE_TAC[GET; LOOKUP_DICT_MERGE] THEN
+  REPEAT COND_CASES_TAC THEN
+  ASM_SIMP_TAC[LOOKUP_EQ_SOME; LOOKUP_EQ_NONE; OPTION_MERGE; GETOPTION]);;
 
 (* ------------------------------------------------------------------------- *)
 (* From multivalued dictionaries to set of dictionaries.                     *)
