@@ -107,12 +107,12 @@ let ANT_STEP = new_definition
   `ANT_STEP (stigmergy:(position,num)dict) (i:position) (dir:direction) :
      (position#direction)->bool =
      if i = 0 then
-       if LOOKUP stigmergy 1 < LOOKUP stigmergy 2 then {(2,Forward)} else
-       if LOOKUP stigmergy 2 < LOOKUP stigmergy 1 then {(1,Forward)} else
+       if GET stigmergy 1 < GET stigmergy 2 then {(2,Forward)} else
+       if GET stigmergy 2 < GET stigmergy 1 then {(1,Forward)} else
          {(1,Forward),(2,Forward)}
      else if i = 4 then
-       if LOOKUP stigmergy 1 < LOOKUP stigmergy 3 then {(3,Backward)} else
-       if LOOKUP stigmergy 3 < LOOKUP stigmergy 1 then {(1,Backward)} else
+       if GET stigmergy 1 < GET stigmergy 3 then {(3,Backward)} else
+       if GET stigmergy 3 < GET stigmergy 1 then {(1,Backward)} else
          {(1,Backward),(3,Backward)}
      else
        if i = 1 then {(4,dir)} else
