@@ -275,14 +275,6 @@ let LOOKUP_DICT_COMBINE = prove
   SIMP_TAC[LOOKUPOPT_EQ_SOME] THEN REWRITE_TAC[GETOPTION; lifted]);;
 
 (* ------------------------------------------------------------------------- *)
-(* From multivalued dictionaries to set of dictionaries.                     *)
-(* ------------------------------------------------------------------------- *)
-
-let DICT_COLLECT = new_definition
-  `DICT_COLLECT (d:(K,V->bool)dict) : (K,V)dict->bool =
-   {e | KEYS e = KEYS d /\ !k. k IN KEYS e ==> LOOKUP e k IN LOOKUP d k}`;;
-
-(* ------------------------------------------------------------------------- *)
 (* Dictionary associated to a function.                                      *)
 (* ------------------------------------------------------------------------- *)
 
@@ -419,3 +411,26 @@ let LOOKUP_DICT_MONOIDAL_COMBINE = prove
   REPEAT GEN_TAC THEN
   REWRITE_TAC[DICT_MONOIDAL_COMBINE; LOOKUP_FUNDICT; IN_UNION] THEN
   ASM_CASES_TAC `k IN KEYS (d1:(K,V)dict)` THEN ASM_REWRITE_TAC[]);;
+
+(* ------------------------------------------------------------------------- *)
+(* From multivalued dictionaries to set of dictionaries.                     *)
+(* ------------------------------------------------------------------------- *)
+
+(* let DICT_COLLECT = new_definition
+  `DICT_COLLECT (d:(K,V->bool)dict) : (K,V)dict->bool =
+   {e | KEYS e = KEYS d /\ !k. k IN KEYS e ==> LOOKUP e k IN LOOKUP d k}`;; *)
+
+let DICT_COLLECT = new_definition
+  `DICT_COLLECT (d:(K,V->bool)dict) : (K,V)dict->bool =
+   {FUNDICT (KEYS d) f | f | !k. k IN KEYS d ==> f k IN LOOKUP d k}`;;
+
+let IN_DICT_COLLECT = prove
+ (`!e d:(K,V->bool)dict.
+     e IN DICT_COLLECT d <=> KEYS e = KEYS d /\
+                             (!k. k IN KEYS d ==> LOOKUP e k IN LOOKUP d k)`,
+  REPEAT GEN_TAC THEN REWRITE_TAC[DICT_COLLECT; IN_ELIM_THM] THEN EQ_TAC THENL
+  [STRIP_TAC THEN FIRST_X_ASSUM SUBST_VAR_TAC THEN
+   ASM_SIMP_TAC[KEYS_FUNDICT; LOOKUP_FUNDICT];
+   ALL_TAC] THEN
+  STRIP_TAC THEN EXISTS_TAC `LOOKUP (e:(K,V)dict)` THEN
+  ASM_SIMP_TAC[DICT_LOOKUP_EXTENSION; KEYS_FUNDICT; LOOKUP_FUNDICT]);;
