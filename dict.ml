@@ -368,3 +368,21 @@ let DICT_VALS_DICTFUN = prove
  (`!K f:A->B. DICT_VALS (DICTFUN K f) = IMAGE f K`,
   REPEAT GEN_TAC THEN REWRITE_TAC[DICT_VALS; KEYS_DICTFUN; LOOKUP_DICTFUN] THEN
   MATCH_MP_TAC IMAGE_EQ THEN SIMP_TAC[LOOKUP_DICTFUN]);;
+
+(* ------------------------------------------------------------------------- *)
+(* Transposed dictionary.                                                    *)
+(* ------------------------------------------------------------------------- *)
+
+let DICT_TRANSPOSE = new_definition
+  `DICT_TRANSPOSE (d:(K,V)dict) : (V,K->bool)dict =
+   DICTFUN (DICT_VALS d) (\v. {k | k IN KEYS d /\ LOOKUP d k = v})`;;
+
+let KEYS_DICT_TRANSPOSE = prove
+ (`!d:(K,V)dict. KEYS (DICT_TRANSPOSE d) = DICT_VALS d`,
+  REWRITE_TAC[DICT_TRANSPOSE; KEYS_DICTFUN]);;
+
+let LOOKUP_DICT_TRANSPOSE = prove
+ (`!d:(K,V)dict v.
+     v IN DICT_VALS d
+     ==> LOOKUP (DICT_TRANSPOSE d) v = {k | k IN KEYS d /\ LOOKUP d k = v}`,
+  SIMP_TAC[DICT_TRANSPOSE; LOOKUP_DICTFUN]);;
