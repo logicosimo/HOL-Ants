@@ -386,3 +386,36 @@ let LOOKUP_DICT_TRANSPOSE = prove
      v IN DICT_VALS d
      ==> LOOKUP (DICT_TRANSPOSE d) v = {k | k IN KEYS d /\ LOOKUP d k = v}`,
   SIMP_TAC[DICT_TRANSPOSE; LOOKUP_DICTFUN]);;
+
+(* ------------------------------------------------------------------------- *)
+(* Monoidal combination of two dictionaries.                                 *)
+(* (Sensible definition when op is monoidal)                                 *)
+(* ------------------------------------------------------------------------- *)
+
+let DICT_MONOIDAL_COMBINE = new_definition
+  `DICT_MONOIDAL_COMBINE op d1 d2 : (K,V)dict =
+   DICTFUN (KEYS d1 UNION KEYS d2)
+           (\k. if k IN KEYS d1
+                then if k IN KEYS d2
+                     then op (LOOKUP d1 k) (LOOKUP d2 k)
+                     else LOOKUP d1 k
+                else LOOKUP d2 k)`;;
+
+let KEYS_DICT_MONOIDAL_COMBINE = prove
+ (`!op d1 d2:(K,V)dict. KEYS (DICT_MONOIDAL_COMBINE op d1 d2) =
+                        KEYS d1 UNION KEYS d2`,
+  REWRITE_TAC[DICT_MONOIDAL_COMBINE; KEYS_DICTFUN]);;
+
+let LOOKUP_DICT_MONOIDAL_COMBINE = prove
+ (`!op d1 d2:(K,V)dict k.
+     LOOKUP (DICT_MONOIDAL_COMBINE op d1 d2) k =
+     if k IN KEYS d1
+     then if k IN KEYS d2
+          then op (LOOKUP d1 k) (LOOKUP d2 k)
+          else LOOKUP d1 k
+     else if k IN KEYS d2
+          then LOOKUP d2 k
+          else GETOPTION NONE`,
+  REPEAT GEN_TAC THEN
+  REWRITE_TAC[DICT_MONOIDAL_COMBINE; LOOKUP_DICTFUN; IN_UNION] THEN
+  ASM_CASES_TAC `k IN KEYS (d1:(K,V)dict)` THEN ASM_REWRITE_TAC[]);;
