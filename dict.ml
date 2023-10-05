@@ -13,6 +13,10 @@ let DEFAULT = define
   `(!a x:A. DEFAULT a (SOME x) = x) /\
    (!a:A. DEFAULT a NONE = a)`;;
 
+let OPTION_MAP = define
+  `(!f:A->B. OPTION_MAP f NONE = NONE) /\
+   (!f:A->B x. OPTION_MAP f (SOME x) = SOME (f x))`;;
+
 let ISSOME_RULES,ISSOME_INDUCT,ISSOME_CASES = new_inductive_definition
   `!a. ISSOME (SOME a)`;;
 
@@ -31,16 +35,16 @@ let ISNONE = prove
 
 let NOT_ISSOME = prove
  (`!x:A option. ~ISSOME x <=> ISNONE x`,
-  REWRITE_TAC[FORALL_OPTION; ISSOME; ISNONE]);;
+  REWRITE_TAC[FORALL_OPTION_THM; ISSOME; ISNONE]);;
 
 let NOT_ISNONE = prove
  (`!x:A option. ~ISNONE x <=> ISSOME x`,
-  REWRITE_TAC[FORALL_OPTION; ISSOME; ISNONE]);;
+  REWRITE_TAC[FORALL_OPTION_THM; ISSOME; ISNONE]);;
 
 let OPTION_EXTENSION = prove
  (`!x y:A option. x = y <=> (ISSOME x <=> ISSOME y) /\
                             GETOPTION x = GETOPTION y`,
-  REWRITE_TAC[FORALL_OPTION; ISSOME; GETOPTION; option_DISTINCT; option_INJ]);;
+  REWRITE_TAC[FORALL_OPTION_THM; ISSOME; GETOPTION; option_DISTINCT; option_INJ]);;
 
 (* ------------------------------------------------------------------------- *)
 (* Dictionaries.                                                             *)
@@ -84,6 +88,12 @@ let DICT_LOOKUPOPT_EXTENSION = prove
 
 let LOOKUP = new_definition
   `LOOKUP (d:(A,B)dict) k = GETOPTION (LOOKUPOPT d k)`;;
+
+let LOOKUPOPT_EQ_SOME = prove
+ (`!d:(K,V)dict k. k IN KEYS d ==> LOOKUPOPT d k = SOME (LOOKUP d k)`,
+  REPEAT GEN_TAC THEN REWRITE_TAC[LOOKUP; IN_KEYS] THEN
+  STRUCT_CASES_TAC (ISPEC `LOOKUPOPT (d:(K,V)dict) k` (cases "option")) THEN
+  REWRITE_TAC[ISSOME; GETOPTION]);;
 
 let LOOKUPDEFAULT = new_definition
   `LOOKUPDEFAULT (d:(A,B)dict) a k = DEFAULT a (LOOKUPOPT d k)`;;
@@ -224,3 +234,81 @@ let UPDATE_EMPTYDICT = prove
               KEYS_PAIRDICT; KEYS_EMPTYDICT] THEN
   REWRITE_TAC[FORALL_IN_INSERT; NOT_IN_EMPTY; LOOKUPOPT_UPDATE;
               LOOKUPOPT_PAIRDICT; LOOKUPOPT_EMPTYDICT]);;
+
+(* ------------------------------------------------------------------------- *)
+(* Combine two dictionaries.                                                 *)
+(* ------------------------------------------------------------------------- *)
+
+let DICT_COMBINE = new_definition
+  `DICT_COMBINE (op:A->A->A) d1 d2 =
+   Dict (\k:K. lifted op (LOOKUPOPT d1 k) (LOOKUPOPT d2 k))`;;
+
+let LOOKUPOPT_DICT_COMBINE = prove
+ (`!op d1 d2 k. LOOKUPOPT (DICT_COMBINE (op:V->V->V) d1 d2) (k:K) =
+                lifted op (LOOKUPOPT d1 k) (LOOKUPOPT d2 k)`,
+  REWRITE_TAC[DICT_COMBINE; LOOKUPOPT]);;
+
+let ISSOME_LIFTED = prove
+ (`!op:A->A->A x y. ISSOME (lifted op x y) <=> ISSOME x /\ ISSOME y`,
+  REWRITE_TAC[FORALL_OPTION_THM; lifted; ISSOME]);;
+
+let KEYS_DICT_COMBINE = prove
+ (`!op d1 d2:(K,V)dict.
+     KEYS (DICT_COMBINE op d1 d2) = KEYS d1 INTER KEYS d2`,
+  REWRITE_TAC[EXTENSION; IN_KEYS; LOOKUPOPT_DICT_COMBINE;
+              IN_INTER; ISSOME_LIFTED]);;
+
+let LOOKUP_DICT_COMBINE = prove
+ (`!op d1 d2 k.
+     k IN KEYS d1 /\ k IN KEYS d2
+     ==> LOOKUP (DICT_COMBINE (op:V->V->V) d1 d2) (k:K) =
+         op (LOOKUP d1 k) (LOOKUP d2 k)`,
+  REPEAT GEN_TAC THEN REWRITE_TAC[LOOKUP; LOOKUPOPT_DICT_COMBINE] THEN
+  SIMP_TAC[LOOKUPOPT_EQ_SOME] THEN REWRITE_TAC[GETOPTION; lifted]);;
+
+(* ------------------------------------------------------------------------- *)
+(* Mapping on dictionary values                                              *)
+(* ------------------------------------------------------------------------- *)
+
+let DICT_MAP = new_definition
+  `DICT_MAP (f:A->B) (d:(K,A)dict) : (K,B)dict =
+   Dict(\k. OPTION_MAP f (LOOKUPOPT d k))`;;
+
+let DICT_IMAP = new_definition
+  `DICT_IMAP (f:K->A->B) (d:(K,A)dict) : (K,B)dict =
+   Dict(\k. OPTION_MAP (f k) (LOOKUPOPT d k))`;;
+
+(* let LOOKUPOPT_DICT_MAP = prove
+
+let LOOKUP_DICT_MAP = prove *)
+
+(* ------------------------------------------------------------------------- *)
+(* From multivalued dictionaries to set of dictionaries.                     *)
+(* ------------------------------------------------------------------------- *)
+
+let DICT_COLLECT = new_definition
+  `DICT_COLLECT (d:(K,V->bool)dict) : (K,V)dict->bool =
+   {e | KEYS e = KEYS d /\ !k. k IN KEYS e ==> LOOKUP e k IN LOOKUP d k}`;;
+
+(* ------------------------------------------------------------------------- *)
+(* Dictionary associated to a function.                                      *)
+(* ------------------------------------------------------------------------- *)
+
+let DICTFUN = new_definition
+  `DICTFUN K (f:A->B) = Dict(\k. if k IN K then SOME (f k) else NONE)`;;
+
+let LOOKUPOPT_DICTFUN = prove
+ (`!K f:A->B k. LOOKUPOPT (DICTFUN K f) k =
+                if k IN K then SOME (f k) else NONE`,
+  REWRITE_TAC[DICTFUN; LOOKUPOPT]);;
+
+let KEYS_DICTFUN = prove
+ (`!K f:A->B. KEYS (DICTFUN K f) = K`,
+  REWRITE_TAC[EXTENSION; IN_KEYS; LOOKUPOPT_DICTFUN] THEN REPEAT GEN_TAC THEN
+  COND_CASES_TAC THEN REWRITE_TAC[ISSOME]);;
+
+let LOOKUP_DICTFUN = prove
+ (`!K f:A->B k. LOOKUP (DICTFUN K f) k =
+                if k IN K then f k else GETOPTION NONE`,
+  REWRITE_TAC[LOOKUP; LOOKUPOPT_DICTFUN] THEN REPEAT GEN_TAC THEN
+  COND_CASES_TAC THEN REWRITE_TAC[ISSOME; GETOPTION]);;
