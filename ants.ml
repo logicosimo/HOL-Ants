@@ -1,6 +1,7 @@
 prioritize_num();;
 
-needs "Agents/dict.ml";;
+(* needs "Agents/dict.ml";; *)
+(* needs "Agents/setbind.ml";; *)
 
 (* ------------------------------------------------------------------------- *)
 (* Status for ants.                                                          *)
@@ -85,30 +86,23 @@ let BACKWARD_MOVES_IN_VALID_POSITIONS = prove
   REWRITE_TAC[FORALL_IN_BACKWARD_MOVES; IN_VALID_POSITIONS]);;
 
 (* ------------------------------------------------------------------------- *)
-
-let DICT_COMBINE = new_definition
-  `DICT_COMBINE (op:A->A->A) d1 d2 =
-   Dict (\k:K. lifted op (LOOKUPOPT d1 k) (LOOKUPOPT d2 k))`;;
-
-let OPTION_MAP = define
-  `(!f:A->B. OPTION_MAP f NONE = NONE) /\
-   (!f:A->B x. OPTION_MAP f (SOME x) = SOME (f x))`;;
-
-let DICT_MAP = new_definition
-  `DICT_MAP (f:A -> B) (d:(K,A)dict) : (K,B)dict =
-   Dict(\k. OPTION_MAP f (LOOKUPOPT d k))`;;
-
+(* Ants.                                                                     *)
 (* ------------------------------------------------------------------------- *)
 
+(* Uno stato è una coppia
+     1. dizionario posizione->nat (ferormoni)  (stigmergy)
+     2. dizionario idant->(posizione,direzione)  (ants)
+ *)
 let status_INDUCT,status_RECUR = define_type
   "status = Status ((position,num)dict # (num,(position#direction))dict)";;
 
 let ST_STIGMERGY = define
-  `ST_STIGMERGY (Status (sti,ants)) = sti`;; 
+  `ST_STIGMERGY (Status(sti,ants)) = sti`;;
 
 let ST_ANTS = define
-  `ST_ANTS (Status (sti,ants)) = ants`;; 
+  `ST_ANTS (Status (sti,ants)) = ants`;;
 
+(* `ANT_STEP:(num,num)dict->num->direction->num#direction->bool` *)
 let ANT_STEP = new_definition
   `ANT_STEP (stigmergy:(position,num)dict) (i:position) (dir:direction) :
      (position#direction)->bool =
@@ -128,34 +122,19 @@ let ANT_STEP = new_definition
        if i = 3 /\ dir = Backward then {(2,Backward)} else
        {}`;;
 
-(* `DICT_MAP (UNCURRY (ANT_STEP (ST_STIGMERGY s))) (ST_ANTS s)`;; *)
-
-let DICT_COLLECT = new_definition
-  `DICT_COLLECT (d:(K,V->bool)dict) : (K,V)dict->bool =
-   {e | KEYS e = KEYS d /\ !k. k IN KEYS e ==> LOOKUP e k IN LOOKUP d k}`;;
-
-(* type_of
-`DICT_COLLECT (DICT_MAP (UNCURRY (ANT_STEP (ST_STIGMERGY s))) (ST_ANTS s))`;; *)
+let UPDATE_STIGMERGY = new_definition
+  `UPDATE_STIGMERGY (st:status) : (num,num)dict =
+   DICT_MONOIDAL_COMBINE (+)
+     (ST_STIGMERGY st)
+     (DICT_MAP CARD
+               (DICT_TRANSPOSE (DICT_MAP FST (ST_ANTS st))))`;;
 
 let EVOLUTION_STEP = new_definition
-  `EVOLUTION_STEP (s:status) =
-   { Status (
-       DICT_COMBINE (+) (ST_STIGMERGY s)
-         (Dict(\i:position.
-                 if i IN VALID_POSITIONS then
-                   SOME (CARD{a | ?d. LOOKUPOPT(ST_ANTS s) a = SOME(i,d)})
-                 else
-                   NONE
-              )
-         )
-     ,
-       ants
-     )
-   | ants |
+  `EVOLUTION_STEP (s:status) : status->bool =
+   { Status (UPDATE_STIGMERGY s,ants) | ants |
      ants IN DICT_COLLECT
-               (DICT_MAP (UNCURRY (ANT_STEP (ST_STIGMERGY s))) (ST_ANTS s))  
-   }`;;
-
+               (DICT_MAP (UNCURRY (ANT_STEP (ST_STIGMERGY s)))
+                         (ST_ANTS s)) }`;;
 let EVOLUTION = new_recursive_definition num_RECURSION
   `(!s. EVOLUTION s 0 = {s}) /\
    (!s i. EVOLUTION s (SUC i) =
