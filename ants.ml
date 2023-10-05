@@ -104,7 +104,7 @@ let ST_ANTS = define
 
 (* `ANT_STEP:(num,num)dict->num->direction->num#direction->bool` *)
 let ANT_STEP = new_definition
-  `ANT_STEP (stigmergy:(position,num)dict) (i:position) (dir:direction) :
+  `ANT_STEP (stigmergy:(position,num)dict) (i:position,dir:direction) :
      (position#direction)->bool =
      if i = 0 then
        if GET stigmergy 1 < GET stigmergy 2 then {(2,Forward)} else
@@ -130,11 +130,11 @@ let UPDATE_STIGMERGY = new_definition
 
 let EVOLUTION_STEP = new_definition
   `EVOLUTION_STEP (s:status) : status->bool =
-   { Status (UPDATE_STIGMERGY s,ants) | ants |
-     ants IN DICT_COLLECT
-               (DICT_MAP (UNCURRY (ANT_STEP (ST_STIGMERGY s)))
-                         (ST_ANTS s)) }`;;
-let EVOLUTION = new_recursive_definition num_RECURSION
-  `(!s. EVOLUTION s 0 = {s}) /\
-   (!s i. EVOLUTION s (SUC i) =
-          {s | s, s' | s IN EVOLUTION_STEP s' /\ s' IN (EVOLUTION s i)})`;;
+   IMAGE (\ants. Status (UPDATE_STIGMERGY s,ants))
+         (DICT_COLLECT (DICT_MAP (ANT_STEP (ST_STIGMERGY s))
+                                 (ST_ANTS s)))`;;
+
+needs "Library/iter.ml";;
+
+let EVOLUTION = new_definition
+  `EVOLUTION s k = ITER k (SETBIND EVOLUTION_STEP) {s}`;;
