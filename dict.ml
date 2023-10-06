@@ -289,6 +289,22 @@ let UPDATE_EMPTYDICT = prove
               LOOKUP_PAIRDICT; LOOKUP_EMPTYDICT]);;
 
 (* ------------------------------------------------------------------------- *)
+(* Restriction of a dictionary.                                              *)
+(* ------------------------------------------------------------------------- *)
+
+let DICT_RESTRICT = new_definition
+  `DICT_RESTRICT K (d:(K,V)dict) = FUNDICT K (GET d)`;;
+
+let KEYS_DICT_RESTRICT = prove
+ (`!K d:(K,V)dict. KEYS (DICT_RESTRICT K d) = K`,
+  REWRITE_TAC[DICT_RESTRICT; KEYS_FUNDICT]);;
+
+let GET_DICT_RESTRICT = prove
+ (`!K d:(K,V)dict k. GET (DICT_RESTRICT K d) k =
+                     if k IN K then GET d k else GETOPTION NONE`,
+  REWRITE_TAC[DICT_RESTRICT; GET_FUNDICT]);;
+
+(* ------------------------------------------------------------------------- *)
 (* Combine two dictionaries.                                                 *)
 (* ------------------------------------------------------------------------- *)
 
