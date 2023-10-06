@@ -138,3 +138,16 @@ needs "Library/iter.ml";;
 
 let EVOLUTION = new_definition
   `EVOLUTION s k = ITER k (SETBIND EVOLUTION_STEP) {s}`;;
+
+(RAND_CONV (TOP_DEPTH_CONV num_CONV) THENC
+REWRITE_CONV[EVOLUTION; ITER; SETBIND_CLAUSES; UNION_EMPTY; EVOLUTION_STEP;
+             ST_ANTS; ST_STIGMERGY; ANT_STEP; DICT_MAP_DICT_UNION;
+             DICT_MAP_PAIRDICT] THENC
+NUM_REDUCE_CONV THENC
+REWRITE_CONV[distinctness "direction"; DICT_COLLECT_DICT_UNION; KEYS_DICT_UNION; KEYS_PAIRDICT])
+`EVOLUTION
+       (Status(EMPTYDICT,
+        DICT_UNION (0 => (1,Forward))
+        (DICT_UNION (1 => (1,Backward))
+        (DICT_UNION (2 => (2,Forward)) (2 => (3,Backward))))))
+     2`;;
