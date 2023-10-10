@@ -145,68 +145,6 @@ let DICT_GET_EXTENSION = prove
   REWRITE_TAC[ISSOME; GETOPTION; option_INJ]);;
 
 (* ------------------------------------------------------------------------- *)
-(* Updating a dictionary.                                                    *)
-(* ------------------------------------------------------------------------- *)
-
-let UPDATE = new_definition
-  `UPDATE (d:(A,B)dict) k0 v0 =
-   Dict(\k. if k = k0 then SOME v0 else LOOKUP d k)`;;
-
-let LOOKUP_UPDATE = prove
- (`!d k0 v0 k. LOOKUP (UPDATE (d:(A,B)dict) k0 v0) k =
-               if k = k0 then SOME v0 else LOOKUP d k`,
-  REWRITE_TAC[LOOKUP; UPDATE]);;
-
-let KEYS_UPDATE = prove
- (`!d k0:A v0:B. KEYS (UPDATE d k0 v0) = k0 INSERT KEYS d`,
-  REPEAT GEN_TAC THEN
-  REWRITE_TAC[EXTENSION; IN_KEYS; LOOKUP_UPDATE; IN_INSERT] THEN
-  GEN_TAC THEN COND_CASES_TAC THEN REWRITE_TAC[ISSOME_RULES]);;
-
-let GET_UPDATE = prove
- (`!d k0 v0 k. GET (UPDATE (d:(A,B)dict) k0 v0) k =
-               if k = k0 then v0 else GET d k`,
-  REPEAT GEN_TAC THEN REWRITE_TAC[GET; LOOKUP_UPDATE] THEN
-  COND_CASES_TAC THEN ASM_REWRITE_TAC[GETOPTION]);;
-
-let GETDEFAULT_UPDATE = prove
- (`!d k0 v0 a k. GETDEFAULT (UPDATE (d:(A,B)dict) k0 v0) a k =
-                 if k = k0 then v0 else GETDEFAULT d a k`,
-  REPEAT GEN_TAC THEN REWRITE_TAC[GETDEFAULT; LOOKUP_UPDATE] THEN
-  COND_CASES_TAC THEN ASM_REWRITE_TAC[DEFAULT]);;
-
-(* ------------------------------------------------------------------------- *)
-(* Removing an association from a dictionary.                                *)
-(* ------------------------------------------------------------------------- *)
-
-let REMOVE = new_definition
-  `REMOVE (d:(A,B)dict) k0 =
-   Dict(\k. if k = k0 then NONE else LOOKUP d k)`;;
-
-let LOOKUP_REMOVE = prove
- (`!d k0 k. LOOKUP (REMOVE (d:(A,B)dict) k0) k =
-               if k = k0 then NONE else LOOKUP d k`,
-  REWRITE_TAC[LOOKUP; REMOVE]);;
-
-let KEYS_REMOVE = prove
- (`!d:(A,B)dict k. KEYS (REMOVE d k) = KEYS d DELETE k`,
-  REPEAT GEN_TAC THEN
-  REWRITE_TAC[EXTENSION; IN_KEYS; LOOKUP_REMOVE; IN_DELETE] THEN
-  GEN_TAC THEN COND_CASES_TAC THEN ASM_REWRITE_TAC[ISSOME]);;
-
-let GET_REMOVE = prove
- (`!d k0 k. GET (REMOVE (d:(A,B)dict) k0) k =
-            if k = k0 then GETOPTION NONE else GET d k`,
-  REPEAT GEN_TAC THEN REWRITE_TAC[GET; LOOKUP_REMOVE] THEN
-  COND_CASES_TAC THEN ASM_REWRITE_TAC[]);;
-
-let GETDEFAULT_REMOVE = prove
- (`!d k0  k. GETDEFAULT (REMOVE (d:(A,B)dict) k0) a k =
-             if k = k0 then a else GETDEFAULT d a k`,
-  REPEAT GEN_TAC THEN REWRITE_TAC[GETDEFAULT; LOOKUP_REMOVE] THEN
-  COND_CASES_TAC THEN ASM_REWRITE_TAC[DEFAULT]);;
-
-(* ------------------------------------------------------------------------- *)
 (* Dictionary associated to a function.                                      *)
 (* ------------------------------------------------------------------------- *)
 
@@ -252,6 +190,49 @@ let GETDEFAULT_EMPTYDICT = prove
  (`!a k. GETDEFAULT (EMPTYDICT:(A,B)dict) a k = a`,
   REWRITE_TAC[GETDEFAULT; LOOKUP_EMPTYDICT; DEFAULT]);;
 
+let DICT_EQ_EMPTY = prove
+ (`!d:(K,V)dict. d = EMPTYDICT <=> KEYS d = {}`,
+  REWRITE_TAC[DICT_GET_EXTENSION; KEYS_EMPTYDICT] THEN
+  MESON_TAC[NOT_IN_EMPTY]);;
+
+(* ------------------------------------------------------------------------- *)
+(* Updating a dictionary.                                                    *)
+(* ------------------------------------------------------------------------- *)
+
+let UPDATE = new_definition
+  `UPDATE (d:(A,B)dict) k0 v0 =
+   Dict(\k. if k = k0 then SOME v0 else LOOKUP d k)`;;
+
+let LOOKUP_UPDATE = prove
+ (`!d k0 v0 k. LOOKUP (UPDATE (d:(A,B)dict) k0 v0) k =
+               if k = k0 then SOME v0 else LOOKUP d k`,
+  REWRITE_TAC[LOOKUP; UPDATE]);;
+
+let KEYS_UPDATE = prove
+ (`!d k0:A v0:B. KEYS (UPDATE d k0 v0) = k0 INSERT KEYS d`,
+  REPEAT GEN_TAC THEN
+  REWRITE_TAC[EXTENSION; IN_KEYS; LOOKUP_UPDATE; IN_INSERT] THEN
+  GEN_TAC THEN COND_CASES_TAC THEN REWRITE_TAC[ISSOME_RULES]);;
+
+let GET_UPDATE = prove
+ (`!d k0 v0 k. GET (UPDATE (d:(A,B)dict) k0 v0) k =
+               if k = k0 then v0 else GET d k`,
+  REPEAT GEN_TAC THEN REWRITE_TAC[GET; LOOKUP_UPDATE] THEN
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[GETOPTION]);;
+
+let GETDEFAULT_UPDATE = prove
+ (`!d k0 v0 a k. GETDEFAULT (UPDATE (d:(A,B)dict) k0 v0) a k =
+                 if k = k0 then v0 else GETDEFAULT d a k`,
+  REPEAT GEN_TAC THEN REWRITE_TAC[GETDEFAULT; LOOKUP_UPDATE] THEN
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[DEFAULT]);;
+
+let UPDATE_IDEMPOT = prove
+ (`!d:(K,V)dict k u v. UPDATE (UPDATE d k u) k v = UPDATE d k v`,
+  REPEAT GEN_TAC THEN
+  REWRITE_TAC[DICT_GET_EXTENSION; KEYS_UPDATE; INSERT_INSERT;
+              FORALL_IN_INSERT; GET_UPDATE] THEN
+  MESON_TAC[]);;
+
 (* ------------------------------------------------------------------------- *)
 (* Dictionary with a single association.                                     *)
 (* ------------------------------------------------------------------------- *)
@@ -289,6 +270,72 @@ let UPDATE_EMPTYDICT = prove
               LOOKUP_PAIRDICT; LOOKUP_EMPTYDICT]);;
 
 (* ------------------------------------------------------------------------- *)
+(* Removing an association from a dictionary.                                *)
+(* ------------------------------------------------------------------------- *)
+
+let REMOVE = new_definition
+  `REMOVE (d:(A,B)dict) k0 =
+   Dict(\k. if k = k0 then NONE else LOOKUP d k)`;;
+
+let LOOKUP_REMOVE = prove
+ (`!d k0 k. LOOKUP (REMOVE (d:(A,B)dict) k0) k =
+               if k = k0 then NONE else LOOKUP d k`,
+  REWRITE_TAC[LOOKUP; REMOVE]);;
+
+let KEYS_REMOVE = prove
+ (`!d:(A,B)dict k. KEYS (REMOVE d k) = KEYS d DELETE k`,
+  REPEAT GEN_TAC THEN
+  REWRITE_TAC[EXTENSION; IN_KEYS; LOOKUP_REMOVE; IN_DELETE] THEN
+  GEN_TAC THEN COND_CASES_TAC THEN ASM_REWRITE_TAC[ISSOME]);;
+
+let GET_REMOVE = prove
+ (`!d k0 k. GET (REMOVE (d:(A,B)dict) k0) k =
+            if k = k0 then GETOPTION NONE else GET d k`,
+  REPEAT GEN_TAC THEN REWRITE_TAC[GET; LOOKUP_REMOVE] THEN
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[]);;
+
+let GETDEFAULT_REMOVE = prove
+ (`!d k0  k. GETDEFAULT (REMOVE (d:(A,B)dict) k0) a k =
+             if k = k0 then a else GETDEFAULT d a k`,
+  REPEAT GEN_TAC THEN REWRITE_TAC[GETDEFAULT; LOOKUP_REMOVE] THEN
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[DEFAULT]);;
+
+let REMOVE_EMPTYDICT = prove
+ (`!k. REMOVE EMPTYDICT k = EMPTYDICT:(K,V)dict`,
+  REWRITE_TAC[DICT_GET_EXTENSION; KEYS_REMOVE; KEYS_EMPTYDICT;
+              EMPTY_DELETE; NOT_IN_EMPTY]);;
+
+let REMOVE_UPDATE = prove
+ (`!d:(K,V)dict k v l.
+     REMOVE (UPDATE d k v) l =
+     if k = l then REMOVE d l else UPDATE (REMOVE d l) k v`,
+  REPEAT GEN_TAC THEN REWRITE_TAC[DICT_GET_EXTENSION] THEN COND_CASES_TAC THENL
+  [POP_ASSUM SUBST1_TAC THEN
+   REWRITE_TAC[KEYS_REMOVE; KEYS_UPDATE] THEN
+   CONJ_TAC THENL [SET_TAC[]; ALL_TAC] THEN
+   REWRITE_TAC[IN_DELETE; IN_INSERT; GET_REMOVE; GET_UPDATE] THEN MESON_TAC[];
+   ALL_TAC] THEN
+  REWRITE_TAC[KEYS_REMOVE; KEYS_UPDATE] THEN
+  CONJ_TAC THENL [ASM SET_TAC[]; ALL_TAC] THEN
+  REWRITE_TAC[IN_DELETE; IMP_CONJ; FORALL_IN_INSERT;
+              GET_REMOVE; GET_UPDATE] THEN
+  MESON_TAC[]);;
+
+let REMOVE_PAIRDICT = prove
+ (`!k:K v:V l. REMOVE (k => v) l = if k = l then EMPTYDICT else (k => v)`,
+  REPEAT GEN_TAC THEN
+  REWRITE_TAC[DICT_GET_EXTENSION; KEYS_REMOVE; KEYS_PAIRDICT] THEN
+  COND_CASES_TAC THENL
+  [POP_ASSUM SUBST1_TAC THEN
+   REWRITE_TAC[KEYS_EMPTYDICT; IN_DELETE; IMP_CONJ; FORALL_IN_INSERT;
+               GET_REMOVE; GET_EMPTYDICT; GET_PAIRDICT; NOT_IN_EMPTY] THEN
+   SET_TAC[];
+   ALL_TAC] THEN
+  ASM_REWRITE_TAC[IN_DELETE; IMP_CONJ; FORALL_IN_INSERT; NOT_IN_EMPTY;
+                  KEYS_PAIRDICT; GET_REMOVE; GET_PAIRDICT] THEN
+  ASM SET_TAC []);;
+
+(* ------------------------------------------------------------------------- *)
 (* Restriction of a dictionary.                                              *)
 (* ------------------------------------------------------------------------- *)
 
@@ -303,6 +350,29 @@ let GET_DICT_RESTRICT = prove
  (`!K d:(K,V)dict k. GET (DICT_RESTRICT K d) k =
                      if k IN K then GET d k else GETOPTION NONE`,
   REWRITE_TAC[DICT_RESTRICT; GET_FUNDICT]);;
+
+let DICT_RESTRICT_EMPTY = prove
+ (`!d:(K,V)dict. DICT_RESTRICT {} d = EMPTYDICT`,
+  REWRITE_TAC[DICT_GET_EXTENSION; KEYS_DICT_RESTRICT;
+              KEYS_EMPTYDICT; NOT_IN_EMPTY]);;
+
+let DICT_RESTRICT_INSERT = prove
+ (`!k K d:(K,V)dict.
+     DICT_RESTRICT (k INSERT K) d =
+     UPDATE (DICT_RESTRICT K d) k (GET d k)`,
+  REPEAT GEN_TAC THEN
+  REWRITE_TAC[DICT_GET_EXTENSION; KEYS_DICT_RESTRICT; KEYS_UPDATE] THEN
+  REWRITE_TAC[FORALL_IN_INSERT; GET_DICT_RESTRICT; GET_UPDATE] THEN
+  REWRITE_TAC[IN_INSERT] THEN SIMP_TAC[] THEN MESON_TAC[]);;
+
+let DICT_UPDATE_RESTRICT = prove
+ (`!d:(K,V)dict k v.
+     UPDATE d k v = UPDATE (DICT_RESTRICT (KEYS d DELETE k) d) k v`,
+  REPEAT GEN_TAC THEN REWRITE_TAC[DICT_GET_EXTENSION] THEN CONJ_TAC THENL
+  [REWRITE_TAC[KEYS_UPDATE; KEYS_DICT_RESTRICT] THEN SET_TAC[]; ALL_TAC] THEN
+  REWRITE_TAC[KEYS_UPDATE; FORALL_IN_INSERT; GET_UPDATE;
+              GET_DICT_RESTRICT; IN_DELETE] THEN
+  REPEAT STRIP_TAC THEN COND_CASES_TAC THEN ASM_REWRITE_TAC[]);;
 
 (* ------------------------------------------------------------------------- *)
 (* Combine two dictionaries.                                                 *)
@@ -374,6 +444,13 @@ let GET_DICT_IMAP = prove
    REPEAT GEN_TAC THEN REWRITE_TAC[DICT_IMAP; GET_FUNDICT] THEN
    COND_CASES_TAC THEN ASM_REWRITE_TAC[]);;
 
+let DICT_MAP_UPDATE = prove
+ (`!f:V->W d:(K,V)dict k v.
+     DICT_MAP f (UPDATE d k v) = UPDATE (DICT_MAP f d) k (f v)`,
+  REWRITE_TAC[DICT_GET_EXTENSION; KEYS_DICT_MAP; KEYS_UPDATE;
+              FORALL_IN_INSERT; GET_DICT_MAP; GET_UPDATE] THEN
+  REWRITE_TAC[IN_INSERT] THEN MESON_TAC[]);;
+
 let DICT_MAP_PAIRDICT = prove
  (`!f:A->B k:K v. DICT_MAP f (k => v) = (k => f v)`,
   REWRITE_TAC[DICT_GET_EXTENSION; KEYS_DICT_MAP; KEYS_PAIRDICT;
@@ -406,23 +483,18 @@ let DICT_VALS_FUNDICT = prove
   REPEAT GEN_TAC THEN REWRITE_TAC[DICT_VALS; KEYS_FUNDICT; GET_FUNDICT] THEN
   MATCH_MP_TAC IMAGE_EQ THEN SIMP_TAC[GET_FUNDICT]);;
 
-(* ------------------------------------------------------------------------- *)
-(* Transposed dictionary.                                                    *)
-(* ------------------------------------------------------------------------- *)
-
-let DICT_TRANSPOSE = new_definition
-  `DICT_TRANSPOSE (d:(K,V)dict) : (V,K->bool)dict =
-   FUNDICT (DICT_VALS d) (\v. {k | k IN KEYS d /\ GET d k = v})`;;
-
-let KEYS_DICT_TRANSPOSE = prove
- (`!d:(K,V)dict. KEYS (DICT_TRANSPOSE d) = DICT_VALS d`,
-  REWRITE_TAC[DICT_TRANSPOSE; KEYS_FUNDICT]);;
-
-let GET_DICT_TRANSPOSE = prove
- (`!d:(K,V)dict v.
-     v IN DICT_VALS d
-     ==> GET (DICT_TRANSPOSE d) v = {k | k IN KEYS d /\ GET d k = v}`,
-  SIMP_TAC[DICT_TRANSPOSE; GET_FUNDICT]);;
+let DICT_VALS_UPDATE = prove
+ (`!d:(K,V)dict k v.
+     DICT_VALS (UPDATE d k v) = v INSERT DICT_VALS (REMOVE d k)`,
+  REPEAT GEN_TAC THEN
+  REWRITE_TAC[GSYM SUBSET_ANTISYM_EQ; SUBSET; DICT_VALS; KEYS_UPDATE;
+    FORALL_IN_IMAGE; FORALL_IN_INSERT; KEYS_REMOVE] THEN CONJ_TAC THENL
+  [REWRITE_TAC[GET_UPDATE; IN_INSERT] THEN
+   REWRITE_TAC[IN_IMAGE; IN_DELETE; GET_REMOVE] THEN MESON_TAC[];
+   ALL_TAC] THEN
+  REWRITE_TAC[IMAGE_CLAUSES; GET_UPDATE; IN_INSERT] THEN
+  SIMP_TAC[IN_DELETE; GET_REMOVE; IN_IMAGE; GET_UPDATE] THEN
+  MESON_TAC[]);;
 
 (* ------------------------------------------------------------------------- *)
 (* Monoidal combination of two dictionaries.                                 *)
@@ -467,6 +539,40 @@ let GET_DICT_MERGE_DISJOINT_KEYS = prove
   REPEAT GEN_TAC THEN REWRITE_TAC[GET_DICT_MERGE] THEN
   REPEAT (COND_CASES_TAC THEN ASM_REWRITE_TAC[]) THEN ASM SET_TAC[]);;
 
+let DICT_MERGE_EMPTYDICT = prove
+ (`!op d:(K,V)dict. DICT_MERGE op EMPTYDICT d = d`,
+  SIMP_TAC[DICT_GET_EXTENSION; KEYS_DICT_MERGE; KEYS_EMPTYDICT;
+           UNION_EMPTY; GET_DICT_MERGE; NOT_IN_EMPTY]);;
+
+let DICT_MERGE_UPDATE = prove
+ (`!op d e k:K v:V.
+     DICT_MERGE op (UPDATE d k v) e =
+     UPDATE (DICT_MERGE op d e) k (if k IN KEYS e then op v (GET e k) else v)`,
+  REPEAT GEN_TAC THEN
+  REWRITE_TAC[DICT_GET_EXTENSION; KEYS_DICT_MERGE; KEYS_UPDATE] THEN
+  CONJ_TAC THENL [SET_TAC[]; ALL_TAC] THEN
+  REWRITE_TAC[FORALL_IN_INSERT; FORALL_IN_UNION;
+              GET_DICT_MERGE; GET_UPDATE; KEYS_UPDATE] THEN
+  REWRITE_TAC[IN_INSERT] THEN MESON_TAC[]);;
+
+let DICT_MERGE_PAIRDICT = prove
+ (`!op k v d:(K,V)dict.
+     DICT_MERGE op (k => v) d =
+     UPDATE d k (if k IN KEYS d then op v (GET d k) else v)`,
+  REPEAT GEN_TAC THEN
+  REWRITE_TAC[DICT_GET_EXTENSION; KEYS_DICT_MERGE;
+              KEYS_PAIRDICT; KEYS_UPDATE] THEN
+  CONJ_TAC THENL [SET_TAC[]; ALL_TAC] THEN
+  REWRITE_TAC[FORALL_IN_UNION; FORALL_IN_INSERT; NOT_IN_EMPTY; KEYS_PAIRDICT;
+              GET_DICT_MERGE; GET_UPDATE; GET_PAIRDICT] THEN
+  REWRITE_TAC[IN_INSERT; NOT_IN_EMPTY] THEN
+  REPEAT STRIP_TAC THEN COND_CASES_TAC THENL
+  [POP_ASSUM SUBST_VAR_TAC THEN ASM_REWRITE_TAC[]; ASM_REWRITE_TAC[]]);;
+
+(* ------------------------------------------------------------------------- *)
+(* Union of two dictionaries.                                                *)
+(* ------------------------------------------------------------------------- *)
+
 let DICT_UNION = new_definition
   `DICT_UNION d1 d2 : (K,V)dict = DICT_MERGE (CURRY FST) d1 d2`;;
 
@@ -492,6 +598,16 @@ let GET_DICT_UNION_DISJOINT_KEYS = prove
          GETOPTION NONE`,
   SIMP_TAC[DICT_UNION; GET_DICT_MERGE_DISJOINT_KEYS]);;
 
+let DICT_UNION_PAIRDICT = prove
+ (`!k:K v:V d. DICT_UNION (k => v) d = UPDATE d k v`,
+  REPEAT GEN_TAC THEN REWRITE_TAC[DICT_GET_EXTENSION] THEN
+  REWRITE_TAC[KEYS_DICT_UNION; KEYS_UPDATE; KEYS_PAIRDICT] THEN
+  CONJ_TAC THENL [SET_TAC[]; ALL_TAC] THEN
+  REWRITE_TAC[FORALL_IN_UNION; FORALL_IN_INSERT; NOT_IN_EMPTY] THEN
+  REWRITE_TAC[GET_DICT_UNION; GET_UPDATE; KEYS_PAIRDICT;
+              GET_PAIRDICT; IN_SING] THEN
+  MESON_TAC[]);;
+
 let DICT_UNION_RESTRICT = prove
  (`!d1 d2:(K,V)dict. DICT_UNION d1 d2 =
                      DICT_UNION d1 (DICT_RESTRICT (KEYS d2 DIFF KEYS d1) d2)`,
@@ -512,6 +628,100 @@ let DICT_MAP_DICT_UNION = prove
   COND_CASES_TAC THEN ASM_REWRITE_TAC[]);;
 
 (* ------------------------------------------------------------------------- *)
+(* Transposed dictionary.                                                    *)
+(* ------------------------------------------------------------------------- *)
+
+let DICT_TRANSPOSE = new_definition
+  `DICT_TRANSPOSE (d:(K,V)dict) : (V,K->bool)dict =
+   FUNDICT (DICT_VALS d) (\v. {k | k IN KEYS d /\ GET d k = v})`;;
+
+let KEYS_DICT_TRANSPOSE = prove
+ (`!d:(K,V)dict. KEYS (DICT_TRANSPOSE d) = DICT_VALS d`,
+  REWRITE_TAC[DICT_TRANSPOSE; KEYS_FUNDICT]);;
+
+let GET_DICT_TRANSPOSE = prove
+ (`!d:(K,V)dict v.
+     v IN DICT_VALS d
+     ==> GET (DICT_TRANSPOSE d) v = {k | k IN KEYS d /\ GET d k = v}`,
+  SIMP_TAC[DICT_TRANSPOSE; GET_FUNDICT]);;
+
+let GET_DICT_TRANSPOSE_GEN = prove
+ (`!d:(K,V)dict v.
+     GET (DICT_TRANSPOSE d) v = if v IN DICT_VALS d
+                                then {k | k IN KEYS d /\ GET d k = v}
+                                else GETOPTION NONE`,
+  REWRITE_TAC[DICT_TRANSPOSE; GET_FUNDICT]);;
+
+let DICT_TRANSPOSE_EMPTYDICT = prove
+ (`DICT_TRANSPOSE (EMPTYDICT:(K,V)dict) = EMPTYDICT`,
+  REWRITE_TAC[DICT_GET_EXTENSION; KEYS_DICT_TRANSPOSE;
+              KEYS_EMPTYDICT; DICT_VALS_EMPTYDICT; NOT_IN_EMPTY]);;
+
+let DICT_TRANSPOSE_UPDATE = prove
+ (`!d:(K,V)dict k v.
+     DICT_TRANSPOSE (UPDATE d k v) =
+     DICT_MERGE (UNION) (v => {k}) (DICT_TRANSPOSE (REMOVE d k))`,
+  REPEAT GEN_TAC THEN REWRITE_TAC[DICT_GET_EXTENSION] THEN CONJ_TAC THENL
+  [REWRITE_TAC[KEYS_DICT_TRANSPOSE; KEYS_DICT_MERGE; KEYS_PAIRDICT;
+     KEYS_UPDATE; GET_UPDATE; KEYS_REMOVE; GET_REMOVE; EXTENSION;
+     IN_DICT_VALS; IN_UNION; EXISTS_IN_INSERT; IN_DELETE] THEN
+   REWRITE_TAC[IN_INSERT; NOT_IN_EMPTY] THEN MESON_TAC[];
+   ALL_TAC] THEN
+  REWRITE_TAC[KEYS_DICT_TRANSPOSE; GET_DICT_TRANSPOSE_GEN; GET_DICT_MERGE;
+    IN_DICT_VALS; KEYS_UPDATE; GET_UPDATE; KEYS_PAIRDICT; KEYS_REMOVE;
+    GET_REMOVE; GET_PAIRDICT; EXISTS_IN_INSERT; IN_DELETE] THEN
+  REWRITE_TAC[IN_INSERT; NOT_IN_EMPTY] THEN
+  REPEAT STRIP_TAC THEN REPEAT (FIRST_X_ASSUM SUBST_VAR_TAC) THENL
+  [ASM_REWRITE_TAC[] THEN COND_CASES_TAC THENL
+   [POP_ASSUM STRIP_ASSUME_TAC THEN POP_ASSUM MP_TAC THEN
+    ASM_REWRITE_TAC[] THEN SET_TAC[];
+    ALL_TAC] THEN
+   ASM SET_TAC[];
+   ALL_TAC] THEN
+  ASM_CASES_TAC `k'':K = k` THENL
+  [POP_ASSUM SUBST_VAR_TAC THEN REWRITE_TAC[] THEN
+   COND_CASES_TAC THENL
+   [POP_ASSUM STRIP_ASSUME_TAC THEN POP_ASSUM MP_TAC THEN
+    ASM_REWRITE_TAC[] THEN SET_TAC[];
+    ALL_TAC] THEN
+   ASM SET_TAC[];
+   ALL_TAC] THEN
+  ASM_REWRITE_TAC[] THEN
+  ASM_CASES_TAC `GET (d:(K,V)dict) k'' = v` THEN ASM_REWRITE_TAC[] THENL
+  [COND_CASES_TAC THENL
+   [POP_ASSUM STRIP_ASSUME_TAC THEN POP_ASSUM MP_TAC THEN
+    ASM_REWRITE_TAC[] THEN ASM SET_TAC [];
+    ALL_TAC] THEN
+   ASM SET_TAC[];
+   ALL_TAC] THEN
+   COND_CASES_TAC THENL
+   [POP_ASSUM STRIP_ASSUME_TAC THEN POP_ASSUM MP_TAC THEN COND_CASES_TAC THENL
+    [POP_ASSUM SUBST_VAR_TAC THEN COND_CASES_TAC THENL
+     [POP_ASSUM STRIP_ASSUME_TAC THEN POP_ASSUM MP_TAC THEN ASM_REWRITE_TAC[];
+      ASM SET_TAC[]];
+     ALL_TAC] THEN
+    COND_CASES_TAC THENL
+    [POP_ASSUM STRIP_ASSUME_TAC THEN POP_ASSUM MP_TAC THEN
+     ASM_REWRITE_TAC[] THEN ASM SET_TAC[];
+     ALL_TAC] THEN
+    ASM SET_TAC[];
+    ALL_TAC] THEN
+  COND_CASES_TAC THENL
+  [POP_ASSUM STRIP_ASSUME_TAC THEN POP_ASSUM MP_TAC THEN
+   ASM_REWRITE_TAC[] THEN ASM SET_TAC[];
+   ALL_TAC] THEN
+  REFL_TAC);;
+
+let DICT_TRANSPOSE_PAIRDICT = prove
+ (`!k:K v:V. DICT_TRANSPOSE (k => v) = (v => {k})`,
+  REPEAT GEN_TAC THEN
+  REWRITE_TAC[DICT_GET_EXTENSION; KEYS_DICT_TRANSPOSE; KEYS_PAIRDICT;
+              EXTENSION; IN_DICT_VALS; EXISTS_IN_INSERT; NOT_IN_EMPTY;
+              GET_DICT_TRANSPOSE_GEN; GET_PAIRDICT] THEN
+  CONJ_TAC THENL [SET_TAC[]; ALL_TAC] THEN
+  REPEAT STRIP_TAC THEN ASM_REWRITE_TAC[] THEN SET_TAC[]);;
+
+(* ------------------------------------------------------------------------- *)
 (* From multivalued dictionaries to set of dictionaries.                     *)
 (* ------------------------------------------------------------------------- *)
 
@@ -530,6 +740,70 @@ let IN_DICT_COLLECT = prove
   STRIP_TAC THEN EXISTS_TAC `GET (e:(K,V)dict)` THEN
   ASM_SIMP_TAC[DICT_GET_EXTENSION; KEYS_FUNDICT; GET_FUNDICT]);;
 
+let DICT_COLLECT_EMPTYDICT = prove
+ (`DICT_COLLECT (EMPTYDICT:(K,V->bool)dict) = {EMPTYDICT}`,
+  GEN_REWRITE_TAC I [GSYM SUBSET_ANTISYM_EQ] THEN
+  REWRITE_TAC[SUBSET; IN_DICT_COLLECT; KEYS_EMPTYDICT; NOT_IN_EMPTY;
+              FORALL_IN_INSERT; IN_SING; DICT_EQ_EMPTY]);;
+
+let DICT_COLLECT_UPDATE_FRESH = prove
+ (`!d:(K,V->bool)dict k v.
+     ~(k IN KEYS d)
+     ==> DICT_COLLECT (UPDATE d k v) =
+         SETBIND (\e. IMAGE (UPDATE e k) v) (DICT_COLLECT d)`,
+  REPEAT GEN_TAC THEN INTRO_TAC "k" THEN
+  REWRITE_TAC[GSYM SUBSET_ANTISYM_EQ; SUBSET] THEN CONJ_TAC THENL
+  [FIX_TAC "[e]" THEN REWRITE_TAC[IN_DICT_COLLECT] THEN
+   INTRO_TAC "keys get" THEN REWRITE_TAC[IN_SETBIND; IN_DICT_COLLECT] THEN
+   EXISTS_TAC `DICT_RESTRICT (KEYS (d:(K,V->bool)dict)) (e:(K,V)dict)` THEN
+   REWRITE_TAC[KEYS_DICT_RESTRICT] THEN CONJ_TAC THENL
+   [INTRO_TAC "![l]; l" THEN REMOVE_THEN "get" (MP_TAC o SPEC `l:K`) THEN
+    ASM_SIMP_TAC[KEYS_UPDATE; IN_INSERT; GET_DICT_RESTRICT; GET_UPDATE] THEN
+    ASM_MESON_TAC[];
+    ALL_TAC] THEN
+   REWRITE_TAC[IN_IMAGE] THEN EXISTS_TAC `GET (e:(K,V)dict) k` THEN
+   CONJ_TAC THENL
+   [ASM_REWRITE_TAC[DICT_GET_EXTENSION; KEYS_UPDATE; KEYS_DICT_RESTRICT;
+                    FORALL_IN_INSERT; GET_UPDATE] THEN
+    INTRO_TAC "![l]; l" THEN
+    SUBGOAL_THEN `~(l:K = k)` (fun th -> REWRITE_TAC[th]) THENL
+    [ASM_MESON_TAC[]; ALL_TAC] THEN
+    ASM_REWRITE_TAC[GET_DICT_RESTRICT];
+    ALL_TAC] THEN
+    REMOVE_THEN "get" (MP_TAC o SPEC `k:K`) THEN
+    REWRITE_TAC[KEYS_UPDATE; IN_INSERT; GET_UPDATE];
+    ALL_TAC] THEN
+  REWRITE_TAC[FORALL_IN_SETBIND; IN_DICT_COLLECT; IMP_CONJ;
+              RIGHT_FORALL_IMP_THM] THEN
+  INTRO_TAC "![e]; ekeys; eget" THEN
+  ASM_REWRITE_TAC[FORALL_IN_IMAGE; KEYS_UPDATE; FORALL_IN_INSERT] THEN
+  INTRO_TAC "![u]; u" THEN ASM_REWRITE_TAC[GET_UPDATE] THEN ASM_MESON_TAC[]);;
+
+let DICT_COLLECT_UPDATE = prove
+ (`!d:(K,V->bool)dict k v.
+     DICT_COLLECT (UPDATE d k v) =
+     SETBIND (\e. IMAGE (UPDATE e k) v)
+             (DICT_COLLECT (DICT_RESTRICT (KEYS d DELETE k) d))`,
+  REPEAT GEN_TAC THEN
+  GEN_REWRITE_TAC (LAND_CONV o RAND_CONV) [DICT_UPDATE_RESTRICT] THEN
+  SIMP_TAC[DICT_COLLECT_UPDATE_FRESH; KEYS_DICT_RESTRICT; IN_DELETE]);;
+
+let DICT_COLLECT_PAIRDICT = prove
+ (`!k:K s:V->bool. DICT_COLLECT (k => s) = IMAGE ((=>) k) s`,
+  REPEAT GEN_TAC THEN
+  REWRITE_TAC[DICT_COLLECT; GSYM SUBSET_ANTISYM_EQ; SUBSET;
+              FORALL_IN_GSPEC; FORALL_IN_IMAGE; KEYS_PAIRDICT; GET_PAIRDICT;
+              FORALL_IN_INSERT; NOT_IN_EMPTY] THEN
+  REWRITE_TAC[IN_IMAGE; IN_ELIM_THM] THEN REPEAT STRIP_TAC THENL
+  [EXISTS_TAC `f (k:K):V` THEN
+   ASM_REWRITE_TAC[DICT_GET_EXTENSION; KEYS_FUNDICT; KEYS_PAIRDICT;
+                   FORALL_IN_INSERT; NOT_IN_EMPTY] THEN
+   REWRITE_TAC[GET_FUNDICT; GET_PAIRDICT; IN_SING];
+   EXISTS_TAC `\k:K. x:V` THEN
+   ASM_REWRITE_TAC[DICT_GET_EXTENSION; KEYS_FUNDICT; KEYS_PAIRDICT;
+                   FORALL_IN_INSERT; NOT_IN_EMPTY] THEN
+   REWRITE_TAC[GET_FUNDICT; GET_PAIRDICT; IN_SING]]);;
+
 let DICT_COLLECT_DICT_UNION_DISJOINT_KEYS = prove
  (`!d1 d2:(K,V->bool)dict.
      DISJOINT (KEYS d1) (KEYS d2)
@@ -544,8 +818,7 @@ let DICT_COLLECT_DICT_UNION_DISJOINT_KEYS = prove
   GEN_REWRITE_TAC I [SUBSET] THENL
   [REWRITE_TAC[IN_DICT_COLLECT; KEYS_DICT_UNION; FORALL_IN_UNION] THEN
    INTRO_TAC "![d]; keys d1 d2" THEN
-   HYP_TAC "d1" (SIMP_RULE[GET_DICT_UNION]) THEN
-   REMOVE_THEN "d2" MP_TAC THEN
+   HYP_TAC "d1" (SIMP_RULE[GET_DICT_UNION]) THEN REMOVE_THEN "d2" MP_TAC THEN
    ASM_SIMP_TAC[GET_DICT_UNION_DISJOINT_KEYS] THEN
    INTRO_TAC "d2" THEN REWRITE_TAC[IN_SETBIND; IN_DICT_COLLECT] THEN
    EXISTS_TAC `DICT_RESTRICT (KEYS (d1:(K,V->bool)dict)) (d:(K,V)dict)` THEN
@@ -575,8 +848,8 @@ let DICT_COLLECT_DICT_UNION = prove
  (`!d1 d2:(K,V->bool)dict.
      DICT_COLLECT (DICT_UNION d1 d2) =
      SETBIND (\d. IMAGE (DICT_UNION d)
-                          (DICT_COLLECT (DICT_RESTRICT (KEYS d2 DIFF KEYS d1)
-                                                       d2)))
+                        (DICT_COLLECT (DICT_RESTRICT (KEYS d2 DIFF KEYS d1)
+                                                     d2)))
              (DICT_COLLECT d1)`,
   REPEAT GEN_TAC THEN
   GEN_REWRITE_TAC (LAND_CONV o RAND_CONV) [DICT_UNION_RESTRICT] THEN
