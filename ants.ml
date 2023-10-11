@@ -1,7 +1,6 @@
 prioritize_num();;
 
-(* needs "Agents/dict.ml";; *)
-(* needs "Agents/setbind.ml";; *)
+needs "Library/iter.ml";;
 
 (* ------------------------------------------------------------------------- *)
 (* Status for ants.                                                          *)
@@ -115,18 +114,21 @@ let ANT_STEP = new_definition
        if GET stigmergy 3 < GET stigmergy 1 then {(1,Backward)} else
          {(1,Backward),(3,Backward)}
      else
-       if i = 1 then {(4,dir)} else
+       if i = 1 /\ dir = Forward then {(4,Backward)} else
+       if i = 1 /\ dir = Backward then {(0,Forward)} else
        if i = 2 /\ dir = Forward then {(3,Forward)} else
-       if i = 2 /\ dir = Backward then {(0,Backward)} else
-       if i = 3 /\ dir = Forward then {(4,Forward)} else
+       if i = 2 /\ dir = Backward then {(0,Forward)} else
+       if i = 3 /\ dir = Forward then {(4,Backward)} else
        if i = 3 /\ dir = Backward then {(2,Backward)} else
        {}`;;
+
+let ST_INHABITANTS = new_definition
+  `ST_INHABITANTS st = DICT_TRANSPOSE (DICT_MAP FST (ST_ANTS st))`;;
 
 let UPDATE_STIGMERGY = new_definition
   `UPDATE_STIGMERGY (st:status) : (num,num)dict =
    DICT_MERGE (+) (ST_STIGMERGY st)
-                  (DICT_MAP CARD
-                            (DICT_TRANSPOSE (DICT_MAP FST (ST_ANTS st))))`;;
+                  (DICT_MAP CARD (ST_INHABITANTS st))`;;
 
 let EVOLUTION_STEP = new_definition
   `EVOLUTION_STEP (s:status) : status->bool =
@@ -134,10 +136,9 @@ let EVOLUTION_STEP = new_definition
          (DICT_COLLECT (DICT_MAP (ANT_STEP (ST_STIGMERGY s))
                                  (ST_ANTS s)))`;;
 
-needs "Library/iter.ml";;
-
 let EVOLUTION = new_definition
   `EVOLUTION s k = ITER k (SETBIND EVOLUTION_STEP) {s}`;;
+
 
 (
 RAND_CONV (TOP_DEPTH_CONV num_CONV) THENC
@@ -154,7 +155,7 @@ REWRITE_CONV[distinctness "direction"; DICT_COLLECT_DICT_UNION;
   DICT_RESTRICT_EMPTY;
   GET_DICT_UNION; GET_PAIRDICT; DICT_COLLECT_UPDATE; KEYS_UPDATE;
   KEYS_EMPTYDICT; EMPTY_DELETE; DICT_COLLECT_EMPTYDICT; GET_UPDATE;
-  UPDATE_STIGMERGY; DICT_UNION_PAIRDICT; ST_ANTS; ST_STIGMERGY;
+  UPDATE_STIGMERGY; ST_INHABITANTS; DICT_UNION_PAIRDICT; ST_ANTS; ST_STIGMERGY;
   DICT_MAP_UPDATE; DICT_MAP_PAIRDICT; DICT_MERGE_EMPTYDICT;
   DICT_TRANSPOSE_UPDATE; REMOVE_UPDATE; REMOVE_PAIRDICT;
   DICT_TRANSPOSE_PAIRDICT; DICT_MERGE_PAIRDICT; UPDATE_IDEMPOT] THENC
@@ -166,8 +167,8 @@ REWRITE_CONV[EVOLUTION_STEP; ST_ANTS; ST_STIGMERGY; ANT_STEP;
   DICT_COLLECT_UPDATE; DICT_COLLECT_EMPTYDICT; KEYS_UPDATE; KEYS_EMPTYDICT;
   DICT_RESTRICT_INSERT; DICT_RESTRICT_EMPTY; DELETE_INSERT; EMPTY_DELETE;
   SETBIND_CLAUSES; UNION_EMPTY; IMAGE_CLAUSES;
-  UPDATE_STIGMERGY; DICT_TRANSPOSE_UPDATE; DICT_TRANSPOSE_EMPTYDICT;
-  REMOVE_UPDATE; REMOVE_EMPTYDICT;
+  UPDATE_STIGMERGY; ST_INHABITANTS; DICT_TRANSPOSE_UPDATE;
+  DICT_TRANSPOSE_EMPTYDICT; REMOVE_UPDATE; REMOVE_EMPTYDICT;
   DICT_MERGE_PAIRDICT; IN_INSERT; NOT_IN_EMPTY; INSERT_UNION; UNION_EMPTY;
   DICT_MERGE_UPDATE; CARD_SING; ARITH_ADD; ARITH_SUC; UPDATE_IDEMPOT] THENC
 SIMP_CONV[CARD_CLAUSES; FINITE_INSERT; FINITE_EMPTY; IN_INSERT; NOT_IN_EMPTY;
