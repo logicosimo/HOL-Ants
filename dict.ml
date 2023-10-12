@@ -6,6 +6,12 @@
 (* Miscellanea.                                                              *)
 (* ------------------------------------------------------------------------- *)
 
+let EXTENSION_ALT = prove
+ (`!s t. s = t <=>
+         (!x. x IN s ==> x IN t) /\
+         (!x. x IN t ==> x IN  s)`,
+  REWRITE_TAC[EXTENSION] THEN MESON_TAC[]);;
+
 let IMAGE_EQ = prove
  (`!f g:A->B s. (!x. x IN s ==> f x = g x) ==> IMAGE f s = IMAGE g s`,
   REWRITE_TAC[EXTENSION; IN_IMAGE] THEN MESON_TAC[]);;
@@ -469,6 +475,16 @@ let IN_DICT_VALS = prove
  (`!v d:(K,V)dict. v IN DICT_VALS d <=> ?k. k IN KEYS d /\ GET d k = v`,
   REWRITE_TAC[DICT_VALS; IN_IMAGE] THEN MESON_TAC[]);;
 
+let FORALL_IN_DICT_VALS = prove
+ (`!P d:(K,V)dict. (!v. v IN DICT_VALS d ==> P v) <=>
+                   (!k. k IN KEYS d ==> P (GET d k))`,
+  REWRITE_TAC[IN_DICT_VALS] THEN MESON_TAC[]);;
+
+let EXISTS_IN_DICT_VALS = prove
+ (`!P d:(K,V)dict. (?v. v IN DICT_VALS d /\ P v) <=>
+                   (?k. k IN KEYS d /\ P (GET d k))`,
+  REWRITE_TAC[IN_DICT_VALS] THEN MESON_TAC[]);;
+
 let DICT_VALS_EMPTYDICT = prove
  (`DICT_VALS (EMPTYDICT:(K,V)dict) = {}`,
   REWRITE_TAC[EXTENSION; IN_DICT_VALS; KEYS_EMPTYDICT; NOT_IN_EMPTY]);;
@@ -486,14 +502,10 @@ let DICT_VALS_FUNDICT = prove
 let DICT_VALS_UPDATE = prove
  (`!d:(K,V)dict k v.
      DICT_VALS (UPDATE d k v) = v INSERT DICT_VALS (REMOVE d k)`,
-  REPEAT GEN_TAC THEN
-  REWRITE_TAC[GSYM SUBSET_ANTISYM_EQ; SUBSET; DICT_VALS; KEYS_UPDATE;
-    FORALL_IN_IMAGE; FORALL_IN_INSERT; KEYS_REMOVE] THEN CONJ_TAC THENL
-  [REWRITE_TAC[GET_UPDATE; IN_INSERT] THEN
-   REWRITE_TAC[IN_IMAGE; IN_DELETE; GET_REMOVE] THEN MESON_TAC[];
-   ALL_TAC] THEN
-  REWRITE_TAC[IMAGE_CLAUSES; GET_UPDATE; IN_INSERT] THEN
-  SIMP_TAC[IN_DELETE; GET_REMOVE; IN_IMAGE; GET_UPDATE] THEN
+  REWRITE_TAC[EXTENSION_ALT; FORALL_IN_DICT_VALS; KEYS_UPDATE;
+              FORALL_IN_INSERT; NOT_IN_EMPTY] THEN
+  REWRITE_TAC[KEYS_UPDATE; GET_UPDATE; KEYS_REMOVE; GET_REMOVE;
+              IN_DICT_VALS; IN_INSERT; IN_DELETE] THEN
   MESON_TAC[]);;
 
 (* ------------------------------------------------------------------------- *)

@@ -101,6 +101,39 @@ let ST_STIGMERGY = define
 let ST_ANTS = define
   `ST_ANTS (Status (sti,ants)) = ants`;;
 
+(* ------------------------------------------------------------------------- *)
+(* Inhabitants.                                                              *)
+(* ------------------------------------------------------------------------- *)
+
+let ST_INHABITANTS = new_definition
+  `ST_INHABITANTS st = DICT_TRANSPOSE (DICT_MAP FST (ST_ANTS st))`;;
+
+let KEYS_ST_INHABITANTS = prove
+ (`!st. KEYS (ST_INHABITANTS st) = IMAGE FST (DICT_VALS (ST_ANTS st))`,
+  GEN_TAC THEN
+  REWRITE_TAC[ST_INHABITANTS; KEYS_DICT_TRANSPOSE; DICT_VALS;
+              KEYS_DICT_MAP; GSYM IMAGE_o] THEN
+  MATCH_MP_TAC IMAGE_EQ THEN SIMP_TAC[GET_DICT_MAP; o_THM]);;
+
+let IN_KEYS_ST_INHABITANTS = prove
+ (`!st p. p IN KEYS (ST_INHABITANTS st) <=>
+          ?a. a IN KEYS (ST_ANTS st) /\ FST (GET (ST_ANTS st) a) = p`,
+  REWRITE_TAC[KEYS_ST_INHABITANTS; IN_IMAGE; IN_DICT_VALS] THEN MESON_TAC[]);;
+
+let FORALL_IN_KEYS_ST_INHABITANTS = prove
+ (`!P st. (!p. p IN KEYS (ST_INHABITANTS st) ==> P p) <=>
+          (!a. a IN KEYS (ST_ANTS st) ==> P (FST (GET (ST_ANTS st) a)))`,
+  REWRITE_TAC[IN_KEYS_ST_INHABITANTS] THEN MESON_TAC[]);;
+
+let EXISTS_IN_KEYS_ST_INHABITANTS = prove
+ (`!P st. (?p. p IN KEYS (ST_INHABITANTS st) /\ P p) <=>
+          (?a. a IN KEYS (ST_ANTS st) /\ P (FST (GET (ST_ANTS st) a)))`,
+  REWRITE_TAC[IN_KEYS_ST_INHABITANTS] THEN MESON_TAC[]);;
+
+(* ------------------------------------------------------------------------- *)
+(* Ant logic.                                                                *)
+(* ------------------------------------------------------------------------- *)
+
 (* `ANT_STEP:(num,num)dict->num->direction->num#direction->bool` *)
 let ANT_STEP = new_definition
   `ANT_STEP (stigmergy:(position,num)dict) (i:position,dir:direction) :
@@ -122,8 +155,9 @@ let ANT_STEP = new_definition
        if i = 3 /\ dir = Backward then {(2,Backward)} else
        {}`;;
 
-let ST_INHABITANTS = new_definition
-  `ST_INHABITANTS st = DICT_TRANSPOSE (DICT_MAP FST (ST_ANTS st))`;;
+(* ------------------------------------------------------------------------- *)
+(* Evolution.                                                                *)
+(* ------------------------------------------------------------------------- *)
 
 let UPDATE_STIGMERGY = new_definition
   `UPDATE_STIGMERGY (st:status) : (num,num)dict =
@@ -139,6 +173,9 @@ let EVOLUTION_STEP = new_definition
 let EVOLUTION = new_definition
   `EVOLUTION s k = ITER k (SETBIND EVOLUTION_STEP) {s}`;;
 
+(* ------------------------------------------------------------------------- *)
+(* Simulation.                                                               *)
+(* ------------------------------------------------------------------------- *)
 
 (
 RAND_CONV (TOP_DEPTH_CONV num_CONV) THENC
