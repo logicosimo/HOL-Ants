@@ -112,10 +112,10 @@ let input_INDUCT,input_RECUR = define_type
   "input = Input(A#B)";;
 
 let INPUT_STATUS = define
-  `INPUT_STATUS (Input(stat:Stat,precpt:Percpt)) = stat`;;
+  `INPUT_STATUS (Input(stat:Stat,percpt:Percpt)) = stat`;;
 
 let INPUT_PERCEPTION = define
-  `INPUT_PERCEPTION (Input(stat:Stat,precpt:Percpt)) = precpt`;;
+  `INPUT_PERCEPTION (Input(stat:Stat,percpt:Percpt)) = percpt`;;
 
 let agent_INDUCT,agent_RECUR = define_type
   "agent = Agent((A,B)input->A#C->bool)";;
@@ -249,6 +249,13 @@ let ident_INDUCT,ident_RECUR = define_type
 new_type_abbrev("antsys",
   `:(position->num,ident,position,direction,perception,position)system`);;
 
+  (** Commento 1: Che cosa succede secondo ANT_UPDATE_ENVIRONMENT quando ci sono
+    formiche "tonte" in una posizione (ad es, nel nido)? Siamo sicuri che stiamo
+    descrivendo il giusto aggiornamento in combinazione con CHOOSE_POSITION??
+    Si potrebbe fare un hack mettendo tutte le "tonte" in un punto morto, però
+    così si rompe il modello. Bisogna pensarci
+  **)
+
 let ANT_UPDATE_ENVIRONMENT = new_definition
   `ANT_UPDATE_ENVIRONMENT (sys:antsys) (pos:position) : num =
    SYSTEM_ENVIRONMENT sys pos + CARD {id | FST (SYSTEM_AGENTS sys id) = pos}`;;
@@ -268,7 +275,8 @@ let MK_PERCEPTION = new_definition
                     then Forward
                     else Backward in
    Perception(loc,positions,sti,dirs)`;;
-   (* Perception(loc,positions,RESTRICTION positions sti,dirs)`;; *)
+   (* Perception(loc,positions,RESTRICTION positions sti,dirs)`;; 
+      Distinzione tra global stigmergy e local stigmergy          *)
 
 let MK_INPUT = new_definition
   `MK_INPUT (sys:antsys) (id:ident) : (direction,perception)input =
@@ -309,3 +317,11 @@ ALL_CONV)
                  | Ident 2 -> Position 3,Backward,ANT
                  | Ident _ -> Position 0,Forward,DUMBANT) in
  System(sti,ants):antsys)`;;
+
+
+               1     
+            /     \x->     
+           0       4   
+            \     /
+             2---3
+             y->  <-z
