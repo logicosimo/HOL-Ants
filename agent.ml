@@ -9,6 +9,8 @@
 needs "Library/iter.ml";;
 needs "code/HOL-Ants/setbind.ml";;
 needs "code/HOL-Ants/dict.ml";;
+needs "code/HOL-Ants/conv.ml";;
+needs "code/HOL-Ants/comp.ml";;
 
 let nmax = new_definition
   `nmax (s:A->bool) (f:A->num) =
@@ -20,6 +22,107 @@ let ITERSETBIND = new_definition
 
 let COLLECT = new_definition
   `COLLECT (u:A->B->bool) : (A->B)->bool = {f : A -> B | !x. f x IN u x}`;;
+
+let COLLECT_CONST = prove
+ (`!s:B->bool. COLLECT (\x:A. s) = {f | !x. f x IN s}`,
+  GEN_TAC THEN REWRITE_TAC[EXTENSION; COLLECT]);;
+
+let COLLECT_o = prove
+ (`!f:C->A u:A->B->bool.
+     (!x y. f x = f y ==> x = y) /\
+     (!y. ?x. f x = y)
+     ==> COLLECT (u o f) = IMAGE (\g. g o f) (COLLECT u)`,
+  INTRO_TAC "!f u; inj surj" THEN
+  REWRITE_TAC[GSYM SUBSET_ANTISYM_EQ; SUBSET; COLLECT; FORALL_IN_GSPEC; FORALL_IN_IMAGE; o_THM] THEN
+  REWRITE_TAC[IN_ELIM_THM; IN_IMAGE; o_THM] THEN
+  CONJ_TAC THENL
+  [INTRO_TAC "![g]; g" THEN
+   EXISTS_TAC `g:C->B o inverse (f:C->A)` THEN
+   REWRITE_TAC[GSYM o_ASSOC; o_THM] THEN
+   HYP_TAC "inj" (REWRITE_RULE[INJECTIVE_INVERSE_o]) THEN
+   ASM_REWRITE_TAC[I_O_ID] THEN
+   GEN_TAC THEN
+   CLAIM_TAC "+" `u (x:A):B->bool = u (f (inverse f (x:A):C))` THENL
+   [AP_TERM_TAC THEN
+   HYP_TAC "surj" (REWRITE_RULE[SURJECTIVE_INVERSE]) THEN
+   ASM_REWRITE_TAC[]; ALL_TAC] THEN
+   DISCH_THEN SUBST1_TAC THEN ASM_REWRITE_TAC[];
+   ALL_TAC] THEN
+  INTRO_TAC "![g]; g; !x" THEN ASM_REWRITE_TAC[]);;
+
+let COLLECT_o_ALT = prove
+ (`!f:C->A u:A->B->bool.
+     (!x y. f x = f y ==> x = y) /\
+     (!y. ?x. f x = y)
+     ==> COLLECT u = IMAGE (\g. g o inverse f) (COLLECT (u o f))`,
+  INTRO_TAC "!f u; inj surj" THEN
+  SUBGOAL_THEN `u:A->B->bool = (u o f:C->A) o inverse f`
+    (fun th -> GEN_REWRITE_TAC (LAND_CONV o RAND_CONV) [th]) THENL
+  [HYP_TAC "surj" (REWRITE_RULE[SURJECTIVE_INVERSE_o]) THEN
+   ASM_REWRITE_TAC[GSYM o_ASSOC; I_O_ID];
+   ALL_TAC] THEN
+  MP_TAC (ISPECL [`inverse (f:C->A)`; `u:A->B->bool o f:C->A`] COLLECT_o) THEN
+  ANTS_TAC THENL
+  [CONJ_TAC THENL
+   [REPEAT STRIP_TAC THEN
+    POP_ASSUM (MP_TAC o AP_TERM `f:C->A`) THEN
+    HYP_TAC "surj" (REWRITE_RULE[SURJECTIVE_INVERSE]) THEN
+    ASM_REWRITE_TAC[];
+    GEN_TAC THEN EXISTS_TAC `f (y:C):A` THEN
+    HYP_TAC "inj" (REWRITE_RULE[INJECTIVE_INVERSE]) THEN
+    ASM_REWRITE_TAC[]];
+    ALL_TAC] THEN
+  DISCH_THEN SUBST1_TAC THEN REFL_TAC);;
+
+let COLLECT_o_ALT2 = prove
+ (`!f:A->C u:A->B->bool.
+     (!x y. f x = f y ==> x = y) /\
+     (!y. ?x. f x = y)
+     ==> COLLECT u = IMAGE (\g. g o f) (COLLECT (u o inverse f))`,
+  CHEAT_TAC);;
+  (* INTRO_TAC "!f u; inj surj" THEN
+  SUBGOAL_THEN `u:A->B->bool = (u o f:C->A) o inverse f`
+    (fun th -> GEN_REWRITE_TAC (LAND_CONV o RAND_CONV) [th]) THENL
+  [HYP_TAC "surj" (REWRITE_RULE[SURJECTIVE_INVERSE_o]) THEN
+   ASM_REWRITE_TAC[GSYM o_ASSOC; I_O_ID];
+   ALL_TAC] THEN
+  MP_TAC (ISPECL [`inverse (f:C->A)`; `u:A->B->bool o f:C->A`] COLLECT_o) THEN
+  ANTS_TAC THENL
+  [CONJ_TAC THENL
+   [REPEAT STRIP_TAC THEN
+    POP_ASSUM (MP_TAC o AP_TERM `f:C->A`) THEN
+    HYP_TAC "surj" (REWRITE_RULE[SURJECTIVE_INVERSE]) THEN
+    ASM_REWRITE_TAC[];
+    GEN_TAC THEN EXISTS_TAC `f (y:C):A` THEN
+    HYP_TAC "inj" (REWRITE_RULE[INJECTIVE_INVERSE]) THEN
+    ASM_REWRITE_TAC[]];
+    ALL_TAC] THEN
+  DISCH_THEN SUBST1_TAC THEN REFL_TAC);; *)
+
+let COLLECT_EQ_SETBIND = prove
+ (`!u:num->A->bool.
+     COLLECT u =
+     SETBIND (\x:A. IMAGE (\f:num->A n. if n = 0 then x else f (PRE n))
+                          (COLLECT (u o SUC)))
+         (u 0)`,
+  GEN_TAC THEN
+  REWRITE_TAC[GSYM SUBSET_ANTISYM_EQ; SUBSET; FORALL_IN_SETBIND;
+              COLLECT; FORALL_IN_GSPEC] THEN
+  REWRITE_TAC[IN_SETBIND; IMP_CONJ; RIGHT_FORALL_IMP_THM;
+              FORALL_IN_IMAGE; FORALL_IN_GSPEC; o_THM] THEN
+  REWRITE_TAC[IN_ELIM_THM; IN_IMAGE] THEN
+  CONJ_TAC THENL
+  [INTRO_TAC "!f; f" THEN
+   EXISTS_TAC `f 0:A` THEN
+   ASM_REWRITE_TAC[FUN_EQ_THM] THEN
+   EXISTS_TAC `f:num->A o SUC` THEN
+   ASM_REWRITE_TAC[o_THM] THEN
+   INTRO_TAC "![n]" THEN
+   COND_CASES_TAC THENL [ASM_MESON_TAC[]; AP_TERM_TAC THEN ASM_ARITH_TAC];
+   ALL_TAC] THEN
+  INTRO_TAC "!x; x; !f; f; ![n]" THEN
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[] THEN POP_ASSUM MP_TAC THEN
+  STRUCT_CASES_TAC (SPEC `n:num` num_CASES) THEN ASM_REWRITE_TAC[PRE]);;
 
 (* ------------------------------------------------------------------------- *)
 (* Positions and moves.                                                      *)
@@ -302,6 +405,8 @@ let DUMBANT = new_definition
   `DUMBANT : ant =
    Agent(\inp:(direction,perception)input. {(INPUT_STATUS inp,Position 0)})`;;
 
+
+(*
 (REWRITE_CONV[ANT_UPDATE_SYSTEM; UPDATE_SYSTEM; ANT_UPDATE_ENVIRONMENT; ANT_UPDATE_SYSTEM] THENC
 TOP_DEPTH_CONV let_CONV THENC
 REWRITE_CONV[ANT_UPDATE_SYSTEM; UPDATE_SYSTEM; ANT_UPDATE_ENVIRONMENT; ANT_UPDATE_SYSTEM; ANT_UPDATE_AGENTS; MK_INPUT; MK_PERCEPTION] THENC
@@ -317,11 +422,54 @@ ALL_CONV)
                  | Ident 2 -> Position 3,Backward,ANT
                  | Ident _ -> Position 0,Forward,DUMBANT) in
  System(sti,ants):antsys)`;;
+*)
+
+COMPUTE_CONV [ANT_UPDATE_SYSTEM; UPDATE_SYSTEM; ANT_UPDATE_AGENTS; MK_INPUT; AGENT_STEP]
+`ANT_UPDATE_SYSTEM
+(let sti = (\pos. 0) in
+ let ants = (\id. match id with
+                 | Ident 0 -> Position 1,Forward,ANT
+                 | Ident 1 -> Position 2,Forward,ANT
+                 | Ident 2 -> Position 3,Backward,ANT
+                 | Ident _ -> Position 0,Forward,DUMBANT) in
+ System(sti,ants):antsys)`;;
+let th = it;;
+let tm = rhs (concl th);;
+rand tm;;
 
 
-               1     
-            /     \x->     
-           0       4   
-            \     /
-             2---3
-             y->  <-z
+(* `SETBIND (\f:num->A. IMAGE (\x:A. \n:num. if n = 0 then x else f (PRE n)) (u 0))
+         (COLLECT (u o SUC))`;; *)
+
+let POSITION_SURJ = prove
+ (`!y. ?x. Position x = y`,
+  MESON_TAC[cases "position"]);;
+
+let IDENT_SURJ = prove
+ (`!y. ?x. Ident x = y`,
+  MESON_TAC[cases "ident"]);;
+
+let COLLECT_IDENT_REINDEX =
+  REWRITE_RULE[injectivity "ident"; IDENT_SURJ] (ISPEC `Ident` COLLECT_o_ALT);;
+
+(
+COMPUTE_CONV [ANT_UPDATE_SYSTEM; UPDATE_SYSTEM;
+              ANT_UPDATE_AGENTS; MK_INPUT; AGENT_STEP] THENC
+ONCE_REWRITE_CONV[COLLECT_IDENT_REINDEX] THENC
+ONCE_REWRITE_CONV[COLLECT_EQ_SETBIND] THENC
+REWRITE_CONV[o_THM; MK_INPUT]
+)
+`ANT_UPDATE_SYSTEM
+(let sti = (\pos. 0) in
+ let ants = (\id. match id with
+                 | Ident 0 -> Position 1,Forward,ANT
+                 | Ident 1 -> Position 2,Forward,ANT
+                 | Ident 2 -> Position 3,Backward,ANT
+                 | Ident _ -> Position 0,Forward,DUMBANT) in
+ System(sti,ants):antsys)`;;
+
+(* let th = it;;
+let tm = rhs (concl th);;
+rand tm;;
+dest_const(rator(rand tm));; *)
+
