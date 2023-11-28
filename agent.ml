@@ -6,9 +6,10 @@
 (* Miscellanea.                                                              *)
 (* ------------------------------------------------------------------------- *)
 
+load_path := "/workspaces/hol-light-devcontainer" :: !load_path;;
 needs "Library/iter.ml";;
 needs "code/HOL-Ants/setbind.ml";;
-needs "code/HOL-Ants/dict.ml";;
+(* needs "code/HOL-Ants/dict.ml";; *)
 needs "code/HOL-Ants/conv.ml";;
 needs "code/HOL-Ants/comp.ml";;
 
@@ -274,6 +275,24 @@ let CHOOSE_POSITION = new_definition
   `CHOOSE_POSITION (sti:Pos->num) (positions:Pos->bool) : Pos->bool =
    {pos | pos IN positions /\ sti pos = nmax positions sti}`;;
 
+let SETFILTER = new_definition
+  `SETFILTER (P:A->bool) s = {x | x IN s /\ P x}`;;
+
+let SETFILTER_CLAUSES = prove
+ (`(!P. SETFILTER P {} = {}) /\
+   (!P x:A s. SETFILTER P (x INSERT s) = if P x then x INSERT SETFILTER P s else SETFILTER P s)`,
+  REPEAT STRIP_TAC THEN SIMP_TAC[GSYM SUBSET_ANTISYM_EQ; SUBSET; NOT_IN_EMPTY; SETFILTER; FORALL_IN_GSPEC; FORALL_IN_INSERT; IMP_CONJ] THENL
+  [SET_TAC[]; ALL_TAC] THEN
+  REWRITE_TAC[IN_INSERT; IN_ELIM_THM] THEN
+  CONJ_TAC THENL
+  [REPEAT STRIP_TAC THEN COND_CASES_TAC THEN ASM_REWRITE_TAC[] THEN ASM SET_TAC[];
+   REPEAT GEN_TAC THEN COND_CASES_TAC THEN ASM_REWRITE_TAC[] THEN ASM SET_TAC[]]);;
+
+let CHOOSE_POSITION_THM = prove
+  (`CHOOSE_POSITION (sti:Pos->num) (positions:Pos->bool) : Pos->bool =
+    SETFILTER (\pos. sti pos = nmax positions sti) positions`,
+   REWRITE_TAC[CHOOSE_POSITION; SETFILTER]);;
+
 let direction_INDUCT,direction_RECUR = define_type
   "direction = Forward | Backward";;
 
@@ -325,6 +344,14 @@ let ACCESSIBLE_POSITIONS = new_definition
    let nbh = PERCEPTION_NEIGHBORHOOD percpt in
    {pos | pos IN nbh /\ PERCEPTION_DIRECTIONS percpt pos = dir}`;;
 
+let ACCESSIBLE_POSITIONS_THM = prove
+ (`ACCESSIBLE_POSITIONS (inp:(status,perception)input) : position->bool =
+   let percpt = INPUT_PERCEPTION inp in
+   let dir = INPUT_STATUS inp in
+   let nbh = PERCEPTION_NEIGHBORHOOD percpt in
+   SETFILTER (\pos. PERCEPTION_DIRECTIONS percpt pos = dir) nbh`,
+  REWRITE_TAC[ACCESSIBLE_POSITIONS; SETFILTER]);;
+
 let UPDATE_POSITION = new_definition
   `UPDATE_POSITION (inp:(status,perception)input) : position->bool =
    let percpt = INPUT_PERCEPTION inp in
@@ -341,6 +368,20 @@ let ANT = new_definition
            let loc = PERCEPTION_LOCATION percpt in
            let newdir:status = UPADATE_DIRECTION loc dir in
            {newdir,pos | pos | pos IN UPDATE_POSITION inp})`;;
+
+g `ANT : ant =
+   Agent(\inp:(status,perception)input.
+           let dir = INPUT_STATUS inp in
+           let percpt = INPUT_PERCEPTION inp in
+           let loc = PERCEPTION_LOCATION percpt in
+           let newdir:status = UPADATE_DIRECTION loc dir in
+           IMAGE (\pos. newdir,pos) (UPDATE_POSITION inp))`;;
+e (REWRITE_TAC[ANT; injectivity "agent"]);;
+e (ONCE_REWRITE_TAC[FUN_EQ_THM] THEN FIX_TAC "[inp]");;
+e (REWRITE_TAC[]);;
+e (CONV_TAC (TOP_SWEEP_CONV let_CONV));;
+e (SET_TAC[]);;
+let ANT_THM = top_thm();;
 
 (* ------------------------------------------------------------------------- *)
 (* System for ants.                                                          *)
@@ -380,6 +421,18 @@ let MK_PERCEPTION = new_definition
    Perception(loc,positions,sti,dirs)`;;
    (* Perception(loc,positions,RESTRICTION positions sti,dirs)`;; 
       Distinzione tra global stigmergy e local stigmergy          *)
+
+let MK_PERCEPTION_THM = prove
+ (`MK_PERCEPTION (sti:position->num) (pos:position) : perception =
+   let loc:location = LOCATION pos in
+   let Position i = pos in
+   let positions = IMAGE (\(i,j). Position j) MOVES in
+   let dirs = \pos. if i,POSITION_NUM pos IN FORWARD_MOVES
+                    then Forward
+                    else Backward in
+   Perception(loc,positions,sti,dirs)`,
+  CHEAT_TAC);;
+
 
 let MK_INPUT = new_definition
   `MK_INPUT (sys:antsys) (id:ident) : (direction,perception)input =
@@ -437,7 +490,6 @@ let th = it;;
 let tm = rhs (concl th);;
 rand tm;;
 
-
 (* `SETBIND (\f:num->A. IMAGE (\x:A. \n:num. if n = 0 then x else f (PRE n)) (u 0))
          (COLLECT (u o SUC))`;; *)
 
@@ -452,12 +504,28 @@ let IDENT_SURJ = prove
 let COLLECT_IDENT_REINDEX =
   REWRITE_RULE[injectivity "ident"; IDENT_SURJ] (ISPEC `Ident` COLLECT_o_ALT);;
 
+let BACKWARD_MOVES_THM = prove
+ (`BACKWARD_MOVES = {(1,0), (4,1), (2,0), (3,2), (4,3)}`,
+  CHEAT_TAC);;
+
+
 (
 COMPUTE_CONV [ANT_UPDATE_SYSTEM; UPDATE_SYSTEM;
               ANT_UPDATE_AGENTS; MK_INPUT; AGENT_STEP] THENC
 ONCE_REWRITE_CONV[COLLECT_IDENT_REINDEX] THENC
 ONCE_REWRITE_CONV[COLLECT_EQ_SETBIND] THENC
-REWRITE_CONV[o_THM; MK_INPUT]
+REWRITE_CONV[o_THM; MK_INPUT; SYSTEM_AGENTS; SYSTEM_ENVIRONMENT; MK_PERCEPTION_THM] THENC
+COMPUTE_CONV[AGENT_STEP; LOCATION; FST] THENC
+REWRITE_CONV[] THENC
+COMPUTE_CONV[AGENT_STEP; ANT_THM; LOCATION; UPDATE_POSITION;
+  ACCESSIBLE_POSITIONS_THM; CHOOSE_POSITION_THM; INPUT_PERCEPTION;
+  PERCEPTION_NEIGHBORHOOD; IMAGE_CLAUSES; MOVES; FORWARD_MOVES;
+  BACKWARD_MOVES_THM; INSERT_UNION; UNION_EMPTY; IN_INSERT;
+  NOT_IN_EMPTY; PAIR_EQ; ARITH; SETFILTER_CLAUSES; PERCEPTION_DIRECTIONS;
+  POSITION_NUM; INPUT_STATUS; distinctness "direction";
+  PERCEPTION_STIGMERGY] THENC
+(* REWRITE_CONV[AGENT_STEP] *)
+ALL_CONV
 )
 `ANT_UPDATE_SYSTEM
 (let sti = (\pos. 0) in
@@ -468,8 +536,15 @@ REWRITE_CONV[o_THM; MK_INPUT]
                  | Ident _ -> Position 0,Forward,DUMBANT) in
  System(sti,ants):antsys)`;;
 
-(* let th = it;;
+(*
+let th = it;;
 let tm = rhs (concl th);;
-rand tm;;
-dest_const(rator(rand tm));; *)
+rand (rand (rand (rand (rand (rand tm)))));;
+*)
 
+search[`IMAGE g {f x | x | P x}`];;
+
+search[`SYSTEM_AGENTS`];;
+
+SYSTEM_ENVIRONMENT;;
+AGENT_STEP;;
