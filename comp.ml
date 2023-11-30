@@ -15,6 +15,13 @@
 
 (* needs "Snippets/conv.hl";; *)
 
+(* let debug_conv (conv:conv) : conv = fun tm ->
+  pp_print_string std_formatter "DEBUG: ";
+  pp_print_term std_formatter tm;
+  conv tm;;
+
+let debug_conv (conv:conv) : conv = fun tm -> conv tm;; *)
+
 let COMPUTE_DEPTH_CONV (conv:conv) : conv =
   let is_match = function
       Comb(Comb(Const("_MATCH",_),_),_) -> true
@@ -47,7 +54,7 @@ let COMPUTE_DEPTH_CONV (conv:conv) : conv =
     else if is_disj tm then
       THENQC (LAND_CONV RUNC) (THENCQC DISJ_CONV RUNC) tm
     else if is_let tm then
-      THENQC (RATOR_CONV (RAND_CONV RUNC)) (THENCQC let_CONV RUNC) tm
+      THENQC (debug_conv (SUBLET_CONV RUNC)) (THENCQC let_CONV RUNC) tm
     else if is_match tm then
       THENQC (LAND_CONV RUNC) (THENCQC MATCH_CONV RUNC) tm
     else if is_comb tm then
@@ -119,6 +126,13 @@ set_compute_convs
 set_compute_rewrites
   (map (fun tm -> prove (tm,REWRITE_TAC[]))
        [`FST (x:A,y:B) = x`; `SND (x:A,y:B) = y`; `x:A = x <=> T`;
-        `~T <=> F`; `~F <=> T`]);;
+        `~T <=> F`; `~F <=> T`] @
+   [o_THM; I_THM]);;
 
+(* Tests *)
+(*
 COMPUTE_CONV [] `(\n. FACT n) (let x = 2 in if x < 3 then 3 * 4 else x + 1)`;;
+COMPUTE_CONV [] `let x = 1 in x + 2`;;
+COMPUTE_CONV [] `let x,y = SND(3,(1,2)) in x + y`;;
+COMPUTE_CONV [] `let x = FST(3,(1,2)) in x + 2`;;
+*)
