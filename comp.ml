@@ -54,7 +54,7 @@ let COMPUTE_DEPTH_CONV (conv:conv) : conv =
     else if is_disj tm then
       THENQC (LAND_CONV RUNC) (THENCQC DISJ_CONV RUNC) tm
     else if is_let tm then
-      THENQC (debug_conv (SUBLET_CONV RUNC)) (THENCQC let_CONV RUNC) tm
+      THENQC (SUBLET_CONV RUNC) (THENCQC let_CONV RUNC) tm
     else if is_match tm then
       THENQC (LAND_CONV RUNC) (THENCQC MATCH_CONV RUNC) tm
     else if is_comb tm then
