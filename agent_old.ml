@@ -6,9 +6,20 @@
 (* Miscellanea.                                                              *)
 (* ------------------------------------------------------------------------- *)
 
-(* let ITERSETBIND = new_definition
+needs "Library/iter.ml";;
+needs "code/HOL-Ants/setbind.ml";;
+needs "code/HOL-Ants/dict.ml";;
+
+let nmax = new_definition
+  `nmax (s:A->bool) (f:A->num) =
+   @m. (!x. x IN s ==> f x <= m) /\ (?x. x IN s /\ f x = m)`;;
+
+let ITERSETBIND = new_definition
   `ITERSETBIND (f:A->A->bool) (n:num) : (A->bool) -> (A->bool) =
-   ITER n (SETBIND f)`;; *)
+   ITER n (SETBIND f)`;;
+
+let COLLECT = new_definition
+  `COLLECT (u:A->B->bool) : (A->B)->bool = {f : A -> B | !x. f x IN u x}`;;
 
 (* ------------------------------------------------------------------------- *)
 (* Positions and moves.                                                      *)
@@ -87,18 +98,6 @@ let BACKWARD_MOVES_IN_VALID_POSITIONS = prove
 
 remove_type_abbrev "position";;
 
-let MOVES_THM = prove
- (`MOVES = {(0,1),(1,4),(0,2),(2,3),(3,4),(1,0),(4,1),(2,0),(3,2),(4,3)}`,
-  REWRITE_TAC[MOVES; GSYM SUBSET_ANTISYM_EQ; SUBSET; FORALL_IN_INSERT;
-              NOT_IN_EMPTY; FORALL_IN_UNION] THEN
-  REWRITE_TAC[FORALL_PAIR_THM; FORALL_IN_FORWARD_MOVES;
-              FORALL_IN_BACKWARD_MOVES] THEN
-  REWRITE_TAC[IN_UNION; IN_FORWARD_MOVES_EXPLICIT; IN_BACKWARD_MOVES_EXPLICIT;
-              IN_INSERT; NOT_IN_EMPTY; PAIR_EQ] THEN
-  ARITH_TAC);;
-
-add_ants_thl[MOVES_THM];;
-
 (* ------------------------------------------------------------------------- *)
 (* Nondeterministic agents.                                                  *)
 (*                                                                           *)
@@ -109,155 +108,154 @@ add_ants_thl[MOVES_THM];;
 (*   C = action (possible choices made by the agent)                         *)
 (* ------------------------------------------------------------------------- *)
 
-let input_INDUCT,input_RECUR = define_type
-  "input = Input(A#B)";;
-
-let INPUT_STATUS = define
-  `INPUT_STATUS (Input(stat:Stat,percpt:Percpt)) = stat`;;
-
-let INPUT_PERCEPTION = define
-  `INPUT_PERCEPTION (Input(stat:Stat,percpt:Percpt)) = percpt`;;
-
-add_ants_thl[injectivity "input"; INPUT_STATUS; INPUT_PERCEPTION];;
-
 let agent_INDUCT,agent_RECUR = define_type
-  "agent = Agent((A,B)input->A#C->bool)";;
+  "agent = Agent(A#B->A#C->bool)";;
 
 let AGENT_STEP = define
-  `AGENT_STEP (Agent(a:(Stat,Percpt)input->Stat#Action->bool)) = a`;;
-
-add_ants_thl[injectivity "agent"; AGENT_STEP];;
+  `AGENT_STEP (Agent(a:Stat#Percpt->Stat#Action->bool)) = a`;;
 
 (* ------------------------------------------------------------------------- *)
-(* Ant agents.                                                               *)
+(* Ants.                                                                     *)
 (* ------------------------------------------------------------------------- *)
 
 let CHOOSE_POSITION = new_definition
   `CHOOSE_POSITION (sti:Pos->num) (positions:Pos->bool) : Pos->bool =
-   {pos | pos IN positions /\
-          !pos'. pos' IN positions ==> sti pos' <= sti pos}`;;
-
-let CHOOSE_POSITION_THM = prove
-  (`CHOOSE_POSITION (sti:Pos->num) (positions:Pos->bool) : Pos->bool =
-    SETFILTER (\pos. SETALL (\pos'. sti pos' <= sti pos) positions)
-              positions`,
-   REWRITE_TAC[CHOOSE_POSITION; SETALL; SETFILTER]);;
-
-add_ants_thl[CHOOSE_POSITION_THM];;
+   {pos | pos IN positions /\ sti pos = nmax positions sti}`;;
 
 let direction_INDUCT,direction_RECUR = define_type
   "direction = Forward | Backward";;
 
-add_ants_thl[distinctness "direction"];;
-
 let location_INDUCT,location_RECUR = define_type
   "location = Nest | Dest | Path";;
 
-add_ants_thl[distinctness "location"];;
+let position_INDUCT,position_RECUR = define_type
+  "position = Position num";;
 
 let LOCATION = new_definition
-  `LOCATION (pos:num) : location = match pos with
-                                   | 0 -> Nest
-                                   | 4 -> Dest
-                                   | _ -> Path`;;
+  `LOCATION (pos:position) : location = match pos with
+                                        | Position 0 -> Nest
+                                        | Position 4 -> Dest
+                                        | Position _ -> Path`;;
 
-add_ants_thl[LOCATION];;
-
-let UPDATE_DIRECTION = new_definition
-  `UPDATE_DIRECTION loc dir = match loc with
+let UPADATE_DIRECTION = new_definition
+  `UPADATE_DIRECTION loc dir = match loc with
                              | Nest -> Forward
                              | Dest -> Backward
                              | Path -> dir`;;
 
-add_ants_thl[UPDATE_DIRECTION];;
-
-let perception_INDUCT,perception_RECUR = define_type
-  "perception = Perception(location #
-                           (num->bool) #
-                           (num->num) #
-                           (num->direction))";;
-
-let PERCEPTION_LOCATION = define
-  `PERCEPTION_LOCATION (Perception(loc,nbh,sti,dirs)) = loc`;;
-
-let PERCEPTION_NEIGHBORHOOD = define
-  `PERCEPTION_NEIGHBORHOOD (Perception(loc,nbh,sti,dirs)) = nbh`;;
-
-let PERCEPTION_STIGMERGY = define
-  `PERCEPTION_STIGMERGY (Perception(loc,nbh,sti,dirs)) = sti`;;
-
-let PERCEPTION_DIRECTIONS = define
-  `PERCEPTION_DIRECTIONS (Perception(loc,nbh,sti,dirs)) = dirs`;;
-
-add_ants_thl[injectivity "perception"; PERCEPTION_LOCATION;
-  PERCEPTION_NEIGHBORHOOD; PERCEPTION_STIGMERGY; PERCEPTION_DIRECTIONS];;
-
-let MK_PERCEPTION = new_definition
-  `MK_PERCEPTION (sti:num->num) (pos:num) : perception =
-   let loc:location = LOCATION pos in
-   let i = pos in
-   let positions = {j | i,j IN MOVES} in
-   let dirs = \pos. if i,pos IN FORWARD_MOVES
-                    then Forward
-                    else Backward in
-   Perception(loc,positions,sti,dirs)`;;
-
-let MK_PERCEPTION_THM = prove
- (`MK_PERCEPTION (sti:num->num) (pos:num) : perception =
-   let loc:location = LOCATION pos in
-   let Position i = pos in
-   let positions = IMAGE SND MOVES in
-   let dirs = \pos. if i,pos IN FORWARD_MOVES
-                    then Forward
-                    else Backward in
-   Perception(loc,positions,sti,dirs)`,
-  CHEAT_TAC);;
-
-add_ants_thl[injectivity "perception"; MK_PERCEPTION_THM];;
-
 new_type_abbrev("status",`:direction`);;
+new_type_abbrev("perception",`:location#(position,num#direction)dict`);;
+new_type_abbrev("input",`:status#perception`);;
+
+let PERCEPTION_STIGMERGY = new_definition
+  `PERCEPTION_STIGMERGY (nbh:perception) : position->num =
+   let loc,dict = nbh in
+   GETDEFAULT (DICT_MAP FST dict) 0`;;
+
+let PERCEPTION_DIRECTION = new_definition
+  `PERCEPTION_DIRECTION (percpt:perception) : position->direction =
+   let loc,dict = percpt in
+   GET (DICT_MAP SND dict)`;;
 
 let ACCESSIBLE_POSITIONS = new_definition
-  `ACCESSIBLE_POSITIONS (inp:(status,perception)input) : num->bool =
-   let percpt = INPUT_PERCEPTION inp in
-   let dir = INPUT_STATUS inp in
-   let nbh = PERCEPTION_NEIGHBORHOOD percpt in
-   {pos | pos IN nbh /\ PERCEPTION_DIRECTIONS percpt pos = dir}`;;
-
-let ACCESSIBLE_POSITIONS_THM = prove
- (`ACCESSIBLE_POSITIONS (inp:(status,perception)input) : num->bool =
-   let percpt = INPUT_PERCEPTION inp in
-   let dir = INPUT_STATUS inp in
-   let nbh = PERCEPTION_NEIGHBORHOOD percpt in
-   SETFILTER (\pos. PERCEPTION_DIRECTIONS percpt pos = dir) nbh`,
-  REWRITE_TAC[ACCESSIBLE_POSITIONS; SETFILTER]);;
-
-add_ants_thl[ACCESSIBLE_POSITIONS_THM];;
+  `ACCESSIBLE_POSITIONS (inp:input) : position->bool =
+   let (dir:status,inp:perception) = inp in
+   {pos | pos IN KEYS (SND inp) /\ PERCEPTION_DIRECTION inp pos = dir}`;;
 
 let UPDATE_POSITION = new_definition
-  `UPDATE_POSITION (inp:(status,perception)input) : num->bool =
-   let percpt = INPUT_PERCEPTION inp in
-   let dir = INPUT_STATUS inp in
+  `UPDATE_POSITION (inp:input) : position->bool =
+   let dir,percpt = inp in
    CHOOSE_POSITION (PERCEPTION_STIGMERGY percpt) (ACCESSIBLE_POSITIONS inp)`;;
 
-add_ants_thl[UPDATE_POSITION];;
-
-new_type_abbrev("ant",`:(status,perception,num)agent`);;
+new_type_abbrev("ant",`:(status,perception,position)agent`);;
 
 let ANT = new_definition
   `ANT : ant =
-   Agent(\inp:(status,perception)input.
-           {UPDATE_DIRECTION (LOCATION pos) (INPUT_STATUS inp),pos | pos |
-            pos IN UPDATE_POSITION inp})`;;
+   Agent(\inp:input.
+            let dir,percpt = inp in
+            let loc,dict = percpt in
+            let newdir:status = UPADATE_DIRECTION loc dir in
+            {newdir,pos | pos | pos IN UPDATE_POSITION inp})`;;
 
-g `ANT : ant =
-   Agent(\inp:(status,perception)input.
-           IMAGE (\pos. UPDATE_DIRECTION (LOCATION pos) (INPUT_STATUS inp),pos)
-                 (UPDATE_POSITION inp))`;;
-e (REWRITE_TAC[ANT; injectivity "agent"]);;
-e (ONCE_REWRITE_TAC[FUN_EQ_THM] THEN FIX_TAC "[inp]");;
-e (REWRITE_TAC[]);;
-e (SET_TAC[]);;
-let ANT_THM = top_thm();;
+(* ========================================================================= *)
+(* ========================================================================= *)
+(* ========================================================================= *)
 
-add_ants_thl[ANT_THM];;
+new_type_abbrev("ident",`:num`);;
+new_type_abbrev("ants",
+                `:( ident
+                  , position#status#ant
+                  ) dict`);;
+
+let ANT_POSITION = new_definition
+  `ANT_POSITION (ants:ants) (id:ident) : position =
+   let pos,_ = GET ants id in
+   pos`;;
+
+let ANT_STATUS = new_definition
+  `ANT_STATUS (ants:ants) (id:ident) : status =
+   let pos,stat,_ = GET ants id in
+   stat`;;
+
+let ANT_AGENT = new_definition
+  `ANT_AGENT (ants:ants) (id:ident) : ant =
+   let pos,stat,ag = GET ants id in
+   ag`;;
+
+let GET_PERCEPTION = new_definition
+  `GET_PERCEPTION (sti:position->num) (pos:position) : perception =
+   let Position i = pos in
+   let loc:location = LOCATION pos in
+   let dict = Dict(\pos.
+     let Position j = pos in
+     if i,j IN FORWARD_MOVES then
+       SOME (sti (Position j),Forward)
+     else if i,j IN BACKWARD_MOVES then
+       SOME (sti (Position j),Backward)
+     else NONE) in
+   loc,dict`;;
+
+(* ------------------------------------------------------------------------- *)
+(* System.                                                                   *)
+(* ------------------------------------------------------------------------- *)
+
+let system_INDUCT,system_RECUR = define_type
+  "system = System((position->num)#ants)";;
+
+let SYS_STIGMERGY = define
+  `SYS_STIGMERGY (System(sti,ants)) : position->num = sti`;;
+
+let SYS_ANTS = define
+  `SYS_ANTS (System(sti,ants)) = ants`;;
+
+let UPDATE_STIGMERGY = new_definition
+  `UPDATE_STIGMERGY (sys:system) (pos:position) =
+   SYS_STIGMERGY sys pos + CARD {id | ANT_POSITION (SYS_ANTS sys) id = pos}`;;
+
+let SYS_INPUT = new_definition
+  `SYS_INPUT (sys:system) (id:ident) : input =
+   let ants = SYS_ANTS sys in
+   let sti = SYS_STIGMERGY sys in
+   let pos = ANT_POSITION ants id in
+   let dir = ANT_STATUS ants id in
+   let nbh = GET_PERCEPTION sti pos in
+   let inp = dir,nbh in
+   inp`;;
+
+let ANT_STEP = new_definition
+  `ANT_STEP (sys:system) (id:ident) : status#position->bool =
+   let ants = SYS_ANTS sys in
+   AGENT_STEP (ANT_AGENT ants id) (SYS_INPUT sys id)`;;
+
+type_of `DICT_COLLECT (FUNDICT (KEYS (SYS_ANTS sys)) (ANT_STEP sys))`;;
+
+let UPDATE_ANTS = new_definition
+  `UPDATE_ANTS sys =
+   DICT_COLLECT (FUNDICT (KEYS (SYS_ANTS sys)) (ANT_STEP sys))`;;
+
+
+let UPDATE_SYSTEM = new_definition
+  `UPDATE_SYSTEM (sys:system) =
+   System(UPDATE_STIGMERGY sys,
+          FUNDICT (KEYS (SYS_ANTS sys))
+                  (COLLECT (ANT_STEP sys)))`;;
