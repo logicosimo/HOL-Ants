@@ -7,7 +7,7 @@ System(env,agents)
 env:num->num (position->stigmergy)
 agents: num#
         direction#
-        (direction,num->num,num#direction)agent)dict
+        (direction,num->num,num)agent)dict
 
 A = num->num option - Environment (stigmergy) of the whole system
 B = num - Ident (nomi agenti)
@@ -23,7 +23,7 @@ let system_INDUCT,system_RECUR = define_type
                    (num,
                     num#
                     direction#
-                    (direction,perception,num#direction)agent)dict)";;
+                    (direction,perception,num)agent)dict)";;
 
 let SYSTEM_ENVIRONMENT = define
   `SYSTEM_ENVIRONMENT (System(env,agents)) = env`;;
@@ -36,45 +36,15 @@ add_ants_thl[injectivity "system"; SYSTEM_ENVIRONMENT; SYSTEM_AGENTS];;
 let UPDATE_SYSTEM = new_definition
   `UPDATE_SYSTEM
      (update_environment : system -> (num->num))
-     (update_agents : system -> (num,num#direction#(direction,perception,num#direction)agent)dict -> bool)
+     (update_agents : system -> (num,num#direction#(direction,perception,num)agent)dict -> bool)
      (sys : system) : system -> bool =
     IMAGE (\a. System(update_environment sys,a)) (update_agents sys)`;;
 
 add_ants_thl[UPDATE_SYSTEM];;
 
 (* ------------------------------------------------------------------------- *)
-(* Ants.                                                                     *)
-(* ------------------------------------------------------------------------- *)
-
-(* Duplicato *)
-(* let CHOOSE_POSITION = new_definition
-  `CHOOSE_POSITION (sti:num->num) (positions:num->bool) : num->bool =
-   {pos | pos IN positions /\
-          !pos'. pos' IN positions ==> sti pos' <= sti pos}`;;
-
-let CHOOSE_POSITION_THM = prove
-  (`CHOOSE_POSITION (sti:num->num) (positions:num->bool) : num->bool =
-    SETFILTER (\pos. SETALL (\pos'. sti pos' <= sti pos) positions)
-              positions`,
-   REWRITE_TAC[CHOOSE_POSITION; SETALL; SETFILTER]);;
-
-add_ants_thl[CHOOSE_POSITION_THM];; *)
-
-(* ------------------------------------------------------------------------- *)
 (* System for ants.                                                          *)
 (* ------------------------------------------------------------------------- *)
-
-(* let ident_INDUCT,ident_RECUR = define_type
-  "ident = Ident num";;
-
-add_ants_thl[injectivity "ident"];; *)
-
-(** Commento 1: Che cosa succede secondo ANT_UPDATE_ENVIRONMENT quando ci sono
-  formiche "tonte" in una posizione (ad es, nel nido)? Siamo sicuri che stiamo
-  descrivendo il giusto aggiornamento in combinazione con CHOOSE_POSITION??
-  Si potrebbe fare un hack mettendo tutte le "tonte" in un punto morto, però
-  così si rompe il modello. Bisogna pensarci
-**)
 
 let ANT_UPDATE_ENVIRONMENT = new_definition
   `ANT_UPDATE_ENVIRONMENT (sys:system) (pos:num) : num =
@@ -96,7 +66,18 @@ let ANT_UPDATE_ENVIRONMENT_THM = prove
 
 add_ants_thl[ANT_UPDATE_ENVIRONMENT_THM];;
 
-let ANT_UPDATE_ENVIRONMENT_THM2 = prove
+(*
+let NUMFUN = new_defintion
+  `NUMFUN l i = if i < LENGTH l then EL i l else 0`;;
+
+NUMFUN [] i = 0
+NUMFUN (CONS h t) 0 = h
+NUMFUN (CONS h t) 0 = h
+NUMFUN [3;4;2;3;5] n
+*)
+
+
+(* let ANT_UPDATE_ENVIRONMENT_THM2 = prove
  (`ANT_UPDATE_ENVIRONMENT (sys:system) = \pos.
    SYSTEM_ENVIRONMENT sys pos +
    if FINITE (KEYS (SYSTEM_AGENTS sys))
@@ -107,7 +88,7 @@ let ANT_UPDATE_ENVIRONMENT_THM2 = prove
                    FST (GET (SYSTEM_AGENTS sys) id) = pos}`,
   REWRITE_TAC[FUN_EQ_THM; ANT_UPDATE_ENVIRONMENT_THM]);;
 
-add_ants_thl[ANT_UPDATE_ENVIRONMENT_THM2];;
+add_ants_thl[ANT_UPDATE_ENVIRONMENT_THM2];; *)
 
 let MK_INPUT = new_definition
   `MK_INPUT (sys:system) (id:num) : (direction,perception)input =
@@ -121,13 +102,13 @@ add_ants_thl[MK_INPUT];;
 
 let ANT_UPDATE_AGENTS = new_definition
   `ANT_UPDATE_AGENTS (sys:system) :
-     (num,num#direction#(direction,perception,num#direction)agent)dict ->
+     (num,num#direction#(direction,perception,num)agent)dict ->
      bool =
    DICT_COLLECT
      (FUNDICT (KEYS (SYSTEM_AGENTS sys))
-       (\id. let pos,dir,log:(direction,perception,num#direction)agent = GET (SYSTEM_AGENTS sys) id in
+       (\id. let pos,dir,log = GET (SYSTEM_AGENTS sys) id in
              let inp = MK_INPUT sys id in
-             IMAGE (\(dir,pos). pos,dir,log) (AGENT_STEP (log':(direction,perception,num#direction)agent) inp)))`;;
+             IMAGE (\(dir,pos). pos,dir,log) (AGENT_STEP log inp)))`;;
 
 let ANT_UPDATE_SYSTEM = new_definition
   `ANT_UPDATE_SYSTEM : system->system->bool =

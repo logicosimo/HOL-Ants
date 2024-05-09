@@ -7,5 +7,7 @@ needs "conv.ml";;
 needs "comp.ml";;
 needs "misc.ml";;
 needs "dicttrie.ml";;
+needs "move.ml";;
 needs "agent.ml";;
+needs "Ntrie/ntrie.ml";;
 needs "sys.ml";;

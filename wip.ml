@@ -85,11 +85,35 @@ let tm0 = time (run_conv
   `SETBIND ANT_UPDATE_SYSTEM
    (ANT_UPDATE_SYSTEM
      (let sti = (\pos. 0) in
-      let ants = (UPDATE EMPTYDICT (Ident 0) (Position 1,Forward,ANT)) in
-      System(sti,ants):antsys))`;;
+      let ants = (UPDATE EMPTYDICT 0 (1,Forward,ANT)) in
+      System(sti,ants):system))`;;
 
-search[`ANT_UPDATE_ENVIRONMENT`];;
+rator tm0;;
+rand tm0;;
+(rand o rand) tm0;;
+(rator o rand) tm0;;
+(rand o rator o rand) tm0;;
+(rand o rand o rator o rand) tm0;;
+(rand o rand o rand o rator o rand) tm0;;
+(rator o rand o rand o rator o rand) tm0;;
+(rand o rator o rand o rand o rator o rand) tm0;;
 
+
+(rator o rand o rand) tm0;;
+(rator o rand o rand o rand) tm0;;
+(rand o rand o rand o rand) tm0;;
+(rator o rand o rand o rand o rand) tm0;;
+(rand o rand o rand o rand o rand) tm0;;
+(rator o rand o rand o rand o rand o rand) tm0;;
+(rand o rand o rand o rand o rand o rand) tm0;;
+(rand o rand o rand o rand o rand o rand o rand) tm0;;
+
+let DICTMERGE_TRIE = prove
+ (`!op:A->A->A d e.
+     DICT_MERGE op (Dict (DICTTRIE d)) (Dict (DICTTRIE e)) =
+     Dict (DICTTRIE (DICTMERGE op d e))`,
+  REPEAT GEN_TAC THEN REWRITE_TAC[DICT_MERGE; DICTTRIE] THEN AP_TERM_TAC THEN
+  REWRITE_TAC[FUN_EQ_THM; LOOKUP; DICTMERGE]);;
 
 (* 2 formiche, 2 step. *)
 let tm0 = time (run_conv
@@ -101,7 +125,7 @@ let tm0 = time (run_conv
       let ants =
         UPDATE (UPDATE EMPTYDICT (Ident 0) (Position 1,Forward,ANT))
              (Ident 1) (Position 2,Forward,ANT) in
-      System(sti,ants):antsys))`;;
+      System(sti,ants):system))`;;
 
 (lhand o rand o lhand o rand o rand) tm0;;
 
@@ -117,7 +141,7 @@ let tm0 = time (run_conv
            (UPDATE (UPDATE EMPTYDICT (Ident 0) (Position 1,Forward,ANT))
              (Ident 1) (Position 2,Forward,ANT))
            (Ident 2) (Position 3,Backward,ANT) in
-      System(sti,ants):antsys))`;;
+      System(sti,ants):system))`;;
 
 
 (* VECCHIE SIMULAZIONI *)
@@ -133,7 +157,7 @@ let tm0 = time (run_conv
            (UPDATE (UPDATE EMPTYDICT (Ident 0) (Position 1,Forward,ANT))
              (Ident 1) (Position 2,Forward,ANT))
            (Ident 2) (Position 3,Backward,ANT) in
-      System(sti,ants):antsys)`;;
+      System(sti,ants):system)`;;
 
 
 let get_binop tm = rator (rator tm);;
@@ -192,7 +216,7 @@ let tm0 = time (
            (UPDATE (UPDATE EMPTYDICT (Ident 0) (Position 1,Forward,ANT))
              (Ident 1) (Position 2,Forward,ANT))
            (Ident 2) (Position 3,Backward,ANT) in
-      System(sti,ants):antsys))`;;
+      System(sti,ants):system))`;;
 
 let tm0 = time (run_conv
    (ANTS_COMPUTE_CONV THENC
@@ -201,7 +225,7 @@ let tm0 = time (run_conv
    (ANT_UPDATE_SYSTEM
      (let sti = (\pos. 0) in
       let ants = (UPDATE EMPTYDICT (Ident 0) (Position 1,Forward,ANT)) in
-      System(sti,ants):antsys))`;;
+      System(sti,ants):system))`;;
 
 g `!s f:A->B->bool. SETBIND f s = {} <=> !x. x IN s ==> f x = {}`;;
 e (REPEAT GEN_TAC THEN REWRITE_TAC[SETBIND; EMPTY_UNIONS]);;
@@ -213,7 +237,7 @@ g `SETBIND ANT_UPDATE_SYSTEM
    (ANT_UPDATE_SYSTEM
      (let sti = (\pos. 0) in
       let ants = (UPDATE EMPTYDICT (Ident 0) (Position 1,Forward,ANT)) in
-      System(sti,ants):antsys)) = {}`;;
+      System(sti,ants):system)) = {}`;;
 e (REWRITE_TAC[SETBIND_EQ_EMPTY]);;
 e (CONV_TAC (ONCE_DEPTH_CONV (CHANGED_CONV ANTS_COMPUTE_CONV)));;
 e (REWRITE_TAC[IN_SING]);;
@@ -265,7 +289,7 @@ let tm0 = time (run_conv
                        | Ident 1 -> Position 2,Forward,ANT
                        | Ident 2 -> Position 3,Backward,ANT
                        | Ident _ -> Position 0,Forward,DUMBANT) in
-                       System(sti,ants):antsys)`;;
+                       System(sti,ants):system)`;;
 
 1;;
 rand (rand (rand tm0));;

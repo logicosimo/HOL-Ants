@@ -13,6 +13,14 @@ let DICTTRIE = new_definition
 let DICTEMPTY = new_definition
   `DICTEMPTY (n : num) : A option = NONE`;;
 
+(*
+let DICTZERO = new_definition
+  `DICTZERO x n = if n = 0 then SOME x else NONE`;;
+
+let DICTNODE = new_definition
+  `DICTNODE x a b n : A option = (if EVEN n then a else b) (n DIV 2)`;;
+*)
+
 let DICTNODE = new_definition
   `DICTNODE x a b n : A option =
    if n = 0 then x else (if EVEN n then a else b) (n DIV 2)`;;
@@ -187,3 +195,58 @@ let DICT_UPDATE_ARITH = prove
    (!d k v. DICT_UPDATE (DICTNODE x a b) (BIT1 k) v =
             DICTNODE x a (DICT_UPDATE b k v))`,
   CHEAT_TAC);;
+
+let DICTTRIE_KEYS = new_definition
+  `DICTTRIE_KEYS (d:num->A option) = {k | ISSOME (d k)}`;;
+
+let DICTTRIE_KEYS_ARITH = prove
+ (`(!d:num->A option. DICTTRIE_KEYS (DICTTRIE d) = NTRIE (DICTTRIE_KEYS d)) /\
+   DICTTRIE_KEYS (DICTEMPTY:num->A option) = NEMPTY /\
+   (!x:A option a b.
+      DICTTRIE_KEYS (DICTNODE x a b) =
+      NNODE (if ISSOME x then _0 INSERT (DICTTRIE_KEYS a) else DICTTRIE_KEYS a)
+            (DICTTRIE_KEYS b))`,
+  CHEAT_TAC);;
+
+  (* REWRITE_TAC[DICTTRIE; NTRIE] THEN CONJ_TAC THENL
+  [REWRITE_TAC[DICTTRIE_KEYS; DICTEMPTY; ISSOME; NEMPTY] THEN SET_TAC[];
+   ALL_TAC] THEN
+  REPEAT GEN_TAC THEN REWRITE_TAC[DICTTRIE_KEYS; DICTNODE; NNODE] THEN
+  MATCH_MP_TAC SUBSET_ANTISYM THEN CONJ_TAC THENL
+  [
+   REWRITE_TAC[SUBSET; FORALL_IN_GSPEC] THEN
+   INDUCT_TAC THEN REWRITE_TAC[NOT_SUC] THENL
+   [
+    STRUCT_CASES_TAC (SPEC `x:A option` (cases "option")) THEN
+    REWRITE_TAC[ISSOME] THEN
+    REWRITE_TAC[IN_UNION] THEN DISJ1_TAC THEN
+    REWRITE_TAC[IN_IMAGE] THEN
+    EXISTS_TAC `0` THEN
+    REWRITE_TAC[BIT0; ADD; IN_INSERT] THEN
+    REWRITE_TAC[NUMERAL]
+   ;
+    POP_ASSUM (K ALL_TAC) THEN COND_CASES_TAC THENL
+    [
+     POP_ASSUM (LABEL_TAC "even") THEN INTRO_TAC "some" THEN
+     REWRITE_TAC[IN_UNION] THEN DISJ1_TAC THEN
+     CLAIM_TAC "@m. m" `?m. SUC k = 2 * m` THENL
+     [ASM_MESON_TAC[EVEN_EXISTS]; ALL_TAC] THEN
+     REWRITE_TAC[IN_IMAGE]
+     EXISTS_TAC `m:num` THEN
+     CONJ_TAC THENL
+     [
+      ASM_REWRITE_TAC[] THEN GEN_REWRITE_TAC RAND_CONV [BIT0] THEN
+      ARITH_TAC
+     ;
+      CHEAT_TAC
+     ]
+    ;
+     CHEAT_TAC
+    ]
+   ;
+     CHEAT_TAC
+   ]
+   ;
+     CHEAT_TAC
+   ]
+   );; *)
