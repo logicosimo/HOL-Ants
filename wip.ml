@@ -78,35 +78,74 @@ let DICT_COLLECT_EQ_EMPTY = prove
 
 add_ants_thl [FINITE_EMPTY; FINITE_INSERT; GETOPTION];;
 
+
 (* Una formica, 2 step. *)
 let tm0 = time (run_conv
    (ANTS_COMPUTE_CONV THENC
     REWRITE_CONV[]))
   `SETBIND ANT_UPDATE_SYSTEM
    (ANT_UPDATE_SYSTEM
-     (let sti = (\pos. 0) in
+     (let sti = (0,0,0) in
       let ants = (UPDATE EMPTYDICT 0 (1,Forward,ANT)) in
       System(sti,ants):system))`;;
 
-rator tm0;;
-rand tm0;;
-(rand o rand) tm0;;
-(rator o rand) tm0;;
-(rand o rator o rand) tm0;;
-(rand o rand o rator o rand) tm0;;
-(rand o rand o rand o rator o rand) tm0;;
-(rator o rand o rand o rator o rand) tm0;;
-(rand o rator o rand o rand o rator o rand) tm0;;
+(* 2 formiche, 2 step. *)
+let tm0 = time (run_conv
+   (ANTS_COMPUTE_CONV THENC
+    REWRITE_CONV[]))
+  `SETBIND ANT_UPDATE_SYSTEM
+   (ANT_UPDATE_SYSTEM
+     (let sti = (0,0,0) in
+      let ants =
+        UPDATE (UPDATE EMPTYDICT 0 (1,Forward,ANT)) 1 (2,Forward,ANT) in
+      System(sti,ants):system))`;;
+
+(* 3 formiche, 2 step. *)
+let tm0 = time (run_conv
+   (ANTS_COMPUTE_CONV THENC
+    REWRITE_CONV[]))
+  `SETBIND ANT_UPDATE_SYSTEM
+   (ANT_UPDATE_SYSTEM
+     (let sti = (0,0,0) in
+      let ants =
+         UPDATE
+           (UPDATE (UPDATE EMPTYDICT 0 (1,Forward,ANT))
+             1 (2,Forward,ANT))
+             2 (3,Backward,ANT) in
+      System(sti,ants):system))`;;
+
+let tm0 = time (run_conv
+   (ANTS_COMPUTE_CONV THENC
+    REWRITE_CONV[]))
+  `SETBIND ANT_UPDATE_SYSTEM
+   (SETBIND ANT_UPDATE_SYSTEM
+   (ANT_UPDATE_SYSTEM
+     (let sti = (0,0,0) in
+      let ants =
+         UPDATE
+           (UPDATE (UPDATE EMPTYDICT 0 (1,Forward,ANT))
+             1 (2,Forward,ANT))
+             2 (3,Backward,ANT) in
+      System(sti,ants):system)))`;;
+
+(* 4 formiche, 3 step *)
+let tm0 = time (run_conv
+   (ANTS_COMPUTE_CONV THENC
+    REWRITE_CONV[]))
+  `SETBIND ANT_UPDATE_SYSTEM
+   (SETBIND ANT_UPDATE_SYSTEM
+   (ANT_UPDATE_SYSTEM
+     (let sti = (0,0,0) in
+      let ants =
+        UPDATE (UPDATE (UPDATE (UPDATE EMPTYDICT 0 (1,Forward,ANT))
+                               1 (0,Forward,ANT))
+               2 (2,Forward,ANT))
+        3 (3,Backward,ANT) in
+      System(sti,ants):system)))`;;
 
 
-(rator o rand o rand) tm0;;
-(rator o rand o rand o rand) tm0;;
-(rand o rand o rand o rand) tm0;;
-(rator o rand o rand o rand o rand) tm0;;
-(rand o rand o rand o rand o rand) tm0;;
-(rator o rand o rand o rand o rand o rand) tm0;;
-(rand o rand o rand o rand o rand o rand) tm0;;
-(rand o rand o rand o rand o rand o rand o rand) tm0;;
+
+
 
 let DICTMERGE_TRIE = prove
  (`!op:A->A->A d e.
@@ -115,33 +154,9 @@ let DICTMERGE_TRIE = prove
   REPEAT GEN_TAC THEN REWRITE_TAC[DICT_MERGE; DICTTRIE] THEN AP_TERM_TAC THEN
   REWRITE_TAC[FUN_EQ_THM; LOOKUP; DICTMERGE]);;
 
-(* 2 formiche, 2 step. *)
-let tm0 = time (run_conv
-   (ANTS_COMPUTE_CONV THENC
-    REWRITE_CONV[]))
-  `SETBIND ANT_UPDATE_SYSTEM
-   (ANT_UPDATE_SYSTEM
-     (let sti = (\pos. 0) in
-      let ants =
-        UPDATE (UPDATE EMPTYDICT (Ident 0) (Position 1,Forward,ANT))
-             (Ident 1) (Position 2,Forward,ANT) in
-      System(sti,ants):system))`;;
 
 (lhand o rand o lhand o rand o rand) tm0;;
 
-(* 3 formiche, 2 step. *)
-let tm0 = time (run_conv
-   (ANTS_COMPUTE_CONV THENC
-    REWRITE_CONV[]))
-  `SETBIND ANT_UPDATE_SYSTEM
-   (ANT_UPDATE_SYSTEM
-     (let sti = (\pos. 0) in
-      let ants =
-         UPDATE
-           (UPDATE (UPDATE EMPTYDICT (Ident 0) (Position 1,Forward,ANT))
-             (Ident 1) (Position 2,Forward,ANT))
-           (Ident 2) (Position 3,Backward,ANT) in
-      System(sti,ants):system))`;;
 
 
 (* VECCHIE SIMULAZIONI *)

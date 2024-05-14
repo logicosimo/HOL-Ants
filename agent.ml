@@ -84,48 +84,43 @@ add_ants_thl[UPDATE_DIRECTION];;
 
 (* Perception( location : location
              , neighborhood : num->bool
-             , stigmergy : num->num
              , directions : num->direction
              )
  *)
 let perception_INDUCT,perception_RECUR = define_type
   "perception = Perception(location #
                            (num->bool) #
-                           (num->num) #
                            (num->direction))";;
 
 let PERCEPTION_LOCATION = define
-  `PERCEPTION_LOCATION (Perception(loc,nbh,sti,dirs)) = loc`;;
+  `PERCEPTION_LOCATION (Perception(loc,nbh,dirs)) = loc`;;
 
 let PERCEPTION_NEIGHBORHOOD = define
-  `PERCEPTION_NEIGHBORHOOD (Perception(loc,nbh,sti,dirs)) = nbh`;;
-
-let PERCEPTION_STIGMERGY = define
-  `PERCEPTION_STIGMERGY (Perception(loc,nbh,sti,dirs)) = sti`;;
+  `PERCEPTION_NEIGHBORHOOD (Perception(loc,nbh,dirs)) = nbh`;;
 
 let PERCEPTION_DIRECTIONS = define
-  `PERCEPTION_DIRECTIONS (Perception(loc,nbh,sti,dirs)) = dirs`;;
+  `PERCEPTION_DIRECTIONS (Perception(loc,nbh,dirs)) = dirs`;;
 
 add_ants_thl[injectivity "perception"; PERCEPTION_LOCATION;
-  PERCEPTION_NEIGHBORHOOD; PERCEPTION_STIGMERGY; PERCEPTION_DIRECTIONS];;
+  PERCEPTION_NEIGHBORHOOD; PERCEPTION_DIRECTIONS];;
 
 let MK_PERCEPTION = new_definition
-  `MK_PERCEPTION (sti:num->num) (pos:num) : perception =
+  `MK_PERCEPTION (pos:num) : perception =
    let loc:location = LOCATION pos in
    let positions = {j | pos,j IN MOVES} in
    let dirs = \p. if pos,p IN FORWARD_MOVES
                     then Forward
                     else Backward in
-   Perception(loc,positions,sti,dirs)`;;
+   Perception(loc,positions,dirs)`;;
 
 let MK_PERCEPTION_THM = prove
- (`MK_PERCEPTION (sti:num->num) (pos:num) : perception =
+ (`MK_PERCEPTION (pos:num) : perception =
    let loc:location = LOCATION pos in
    let positions = IMAGE SND MOVES in
    let dirs = \p. if pos,p IN FORWARD_MOVES
                   then Forward
                   else Backward in
-   Perception(loc,positions,sti,dirs)`,
+   Perception(loc,positions,dirs)`,
   CHEAT_TAC);;
 
 add_ants_thl[injectivity "perception"; MK_PERCEPTION_THM];;
@@ -150,36 +145,38 @@ let ACCESSIBLE_POSITIONS_THM = prove
 add_ants_thl[ACCESSIBLE_POSITIONS_THM];;
 
 let UPDATE_POSITION = new_definition
-  `UPDATE_POSITION (inp:(status,perception)input) : num->bool =
-   let percpt = INPUT_PERCEPTION inp in
-   let dir = INPUT_STATUS inp in
-   CHOOSE_POSITION (PERCEPTION_STIGMERGY percpt) (ACCESSIBLE_POSITIONS inp)`;;
+  `UPDATE_POSITION (pos:num) (dir:direction)
+     (s1:num,s2:num,s3:num) : num->bool =
+   match pos with
+   | 0 -> if s1 < s2 then {2} else
+          if s2 < s1 then {1} else
+          {1,2}
+   | 1 -> (match dir with Forward -> {4} | Backward -> {0}) 
+   | 2 -> (match dir with Forward -> {3} | Backward -> {0}) 
+   | 3 -> (match dir with Forward -> {4} | Backward -> {2}) 
+   | 4 -> if s1 < s3 then {3} else
+          if s3 < s1 then {1} else
+          {1,3}`;;
 
 add_ants_thl[UPDATE_POSITION];;
 
-new_type_abbrev("ant",`:(status,perception,num)agent`);;
+new_type_abbrev("ant",`:(status,num#(num#num#num),num)agent`);;
+
+type_of `(ANT : ant = Agent f), f`;;
 
 let ANT = new_definition
-  `ANT : (status,perception,num)agent =
-   Agent(\inp:(status,perception)input.
-           {UPDATE_DIRECTION (LOCATION pos) (INPUT_STATUS inp),pos | pos |
-            pos IN UPDATE_POSITION inp})`;;
+  `ANT : ant =
+   Agent(\inp.
+     let dir = INPUT_STATUS inp in
+     let pos,sti = INPUT_PERCEPTION inp in
+     IMAGE (\p. UPDATE_DIRECTION (LOCATION p) dir,p)
+           (UPDATE_POSITION pos dir sti))`;;
 
-(* g `ANT : ant =
-   Agent(\inp:(status,perception)input.
-           IMAGE (\pos. UPDATE_DIRECTION (LOCATION pos) (INPUT_STATUS inp),pos)
-                 (UPDATE_POSITION inp))`;;
-e (REWRITE_TAC[ANT; injectivity "agent"]);;
-e (ONCE_REWRITE_TAC[FUN_EQ_THM] THEN FIX_TAC "[inp]");;
-e (REWRITE_TAC[]);;
-e (SET_TAC[]);;
-let ANT_THM = top_thm();; *)
-
-let ANT_THM = prove
+(* let ANT_THM = prove
  (`!inp:(status,perception)input.
      AGENT_STEP ANT inp =
      IMAGE (\pos. UPDATE_DIRECTION (LOCATION pos) (INPUT_STATUS inp),pos)
            (UPDATE_POSITION inp)`,
-  REWRITE_TAC[ANT; AGENT_STEP; injectivity "agent"] THEN SET_TAC[]);;
+  REWRITE_TAC[ANT; AGENT_STEP; injectivity "agent"] THEN SET_TAC[]);; *)
 
-add_ants_thl[ANT_THM];;
+add_ants_thl[ANT];;
