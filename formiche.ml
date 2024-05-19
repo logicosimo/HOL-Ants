@@ -1,13 +1,39 @@
 load_path := "/workspaces/hol-light-devcontainer/code/HOL-Ants" :: !load_path;;
 
-needs "formiche_misc.ml";;
 needs "setbind.ml";;
+needs "conv.ml";;
+needs "comp.ml";;
+needs "formiche_misc.ml";;
+
+(* ------------------------------------------------------------------------- *)
+(* Rewriting rules for computations.                                         *)
+(* ------------------------------------------------------------------------- *)
+
+let get_ants_thl,add_ants_thl =
+  let thl:thm list ref = ref [] in
+  let get_ants_thl() = !thl
+  and add_ants_thl l = thl := l @ !thl in
+  get_ants_thl,add_ants_thl;;
+
+let ANTS_COMPUTE_CONV : conv = fun tm -> COMPUTE_CONV (get_ants_thl()) tm;;
+
+let run_conv (conv:conv) tm = rhs(concl(conv tm));;
+
+(* Sets and pairs *)
+add_ants_thl [IMAGE_CLAUSES; SETBIND_CLAUSES];;
+add_ants_thl [UNION_EMPTY; INSERT_UNION];;
+add_ants_thl [NOT_IN_EMPTY; IN_INSERT];;
+add_ants_thl [PAIR_EQ];;
+(* add_ants_thl [DELETE_INSERT];; *)
+(* add_ants_thl [EMPTY_DELETE];; *)
 
 let position_INDUCT,position_RECUR = define_type
   "position = P0 | P1 | P2 | P3 | P4";;
 
 let POSITION_CASES = cases "position";;
 let POSITION_DISTINCTNESS = distinctness "position";;
+
+add_ants_thl [POSITION_DISTINCTNESS];;
 
 let FORALL_POSITION_THM = prove
  (`!P. (!p:position. P p) <=> P P0 /\ P P1 /\ P P2 /\ P P3 /\ P P4`,
@@ -24,6 +50,8 @@ let PP = define
    PP 3 = P3 /\
    PP 4 = P4`;;
 
+add_ants_thl [PP];;
+
 let ant_INDUCT,ant_RECUR = define_type
   "ant = Ant(position#bool)";;
 
@@ -35,6 +63,8 @@ let POS = define
 
 let DIR = define
   `DIR (Ant(pos,dir)) = dir`;;
+
+add_ants_thl [ANT_INJECTIVITY; POS; DIR];;
 
 let system_INDUCT,system_RECUR = define_type
   "system = System(ant^N # num^3)";;
@@ -48,6 +78,8 @@ let ANT = define
 let STI = define
   `STI (System(ant,sti)) = sti`;;
 
+add_ants_thl [SYSTEM_INJECTIVITY; ANT; STI];;
+
 let NEW_STI_DEF = define
   `NEW_STI (System(ant:ant^N,sti)) : num^3 =
    lambda p. sti$p +
@@ -55,6 +87,8 @@ let NEW_STI_DEF = define
                   (\i. if POS(ant$i) = PP p then 1 else 0)`;;
 
 let NEW_STI = REWRITE_RULE[LAMBDA_3; PP] NEW_STI_DEF;;
+
+add_ants_thl [NEW_STI];;
 
 let NEW_ANT = define
   `NEW_ANT (sti:num^3) (Ant(pos,dir)) =
@@ -137,23 +171,49 @@ let NEW_SYSTEM_ALT = top_thm();;
 (* ========================================================================= *)
 (* ========================================================================= *)
 
-(REWRITE_CONV[NEW_SYSTEM_ALT; DIMINDEX_2; ANT; STI] THENC TOP_SWEEP_CONV let_CONV THENC
- TOP_SWEEP_CONV num_CONV THENC
- REWRITE_CONV[LISTCOLLECT_CLAUSES; SETBIND_CLAUSES; UNION_EMPTY; INSERT_UNION; o_THM] THENC
- NUM_REDUCE_CONV THENC
- REWRITE_CONV[VECTOR_2; VECTOR_3; NEW_ANT_THM; distinctness "position";
-              IMAGE_CLAUSES; IMAGE_UNION] THENC
- NUM_REDUCE_CONV THENC
- REWRITE_CONV[INSERT_UNION; UNION_EMPTY; IMAGE_CLAUSES; SETBIND_CLAUSES;
-  IN_INSERT; NOT_IN_EMPTY; CONS_11; injectivity "ant"; PAIR_EQ;
-  distinctness "position"; NEW_STI; VECTOR_3; VECTOR_2; DIMINDEX_2] THENC
- ONCE_DEPTH_CONV NUMSEG_CONV THENC
- SIMP_CONV[NSUM_CLAUSES; FINITE_INSERT; FINITE_EMPTY] THENC
- REWRITE_CONV[IN_INSERT; NOT_IN_EMPTY; VECTOR_2; VECTOR_3; POS;
-   distinctness "position"] THENC
- NUM_REDUCE_CONV THENC
- ALL_CONV)
-`NEW_SYSTEM (System(
-   vector[Ant(P1,F);Ant(P0,T)]:ant^2,
-   vector[0;0;0]:num^3
- ))`;;
+let LISTCOLLECT_2 =
+  (TOP_SWEEP_CONV num_CONV THENC
+   REWRITE_CONV[ONE; TWO; LISTCOLLECT_CLAUSES;
+                SETBIND_CLAUSES; o_THM; UNION_EMPTY])
+  `LISTCOLLECT 2 (u:num->A->bool)`;;
+
+let NEW_SYSTEM_2 = 
+CONV_RULE
+(REWRITE_CONV[ANT; STI; NEW_STI; VECTOR_3] THENC
+ TOP_DEPTH_CONV DIMINDEX_CONV THENC TOP_DEPTH_CONV NUMSEG_CONV THENC
+ SIMP_CONV[NSUM_CLAUSES; FINITE_EMPTY; FINITE_INSERT] THENC
+ TOP_DEPTH_CONV DIMINDEX_CONV THENC
+ REWRITE_CONV[VECTOR_2; IN_INSERT; NOT_IN_EMPTY; POS; ADD_0; LISTCOLLECT_2;
+              ] THENC
+NUM_REDUCE_CONV THENC
+REWRITE_CONV[VECTOR_2; NEW_ANT_THM; VECTOR_3] THENC
+ONCE_DEPTH_CONV let_CONV)
+(ISPEC `System(vector[Ant(pos1,dir1);Ant(pos2,dir2)]:ant^2,
+              vector[s1;s2;s3]:num^3)`
+      NEW_SYSTEM_ALT);;
+
+
+add_ants_thl [NEW_SYSTEM_2];;
+add_ants_thl [CONS_11; NOT_CONS_NIL];;
+
+let VECTOR_EQ_2 = prove
+ (`!x x' y y'. vector[x; y]:A^2 = vector[x'; y'] <=>
+               x = x' /\ y = y'`,
+  REWRITE_TAC[CART_EQ; DIMINDEX_2; FORALL_2; VECTOR_2]);;
+
+let VECTOR_EQ_3 = prove
+ (`!x x' y y' z z'. vector[x; y; z]:A^3 = vector[x'; y'; z'] <=>
+               x = x' /\ y = y' /\ z = z'`,
+  REWRITE_TAC[CART_EQ; DIMINDEX_3; FORALL_3; VECTOR_3]);;
+
+add_ants_thl [VECTOR_EQ_2];;
+add_ants_thl [VECTOR_EQ_3];;
+add_ants_thl [MESON [] `T = F <=> F`; MESON [] `F = T <=> F`];;
+
+let tm =
+time (run_conv (TOP_SWEEP_CONV num_CONV THENC REWRITE_CONV[ITER] THENC
+                ANTS_COMPUTE_CONV))
+`ITER 30 (SETBIND NEW_SYSTEM)  {System(
+   vector[Ant(P1,T);Ant(P2,F)]:ant^2,
+   vector[0;0;0]
+ )}`;;
