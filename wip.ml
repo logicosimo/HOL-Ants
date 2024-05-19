@@ -69,20 +69,262 @@ let DICT_COLLECT_EQ_EMPTY = prove
    ASM_MESON_TAC[];
    CHEAT_TAC]);;
 
+(* let ITERSETBIND = define
+  `(!f:A->A->bool s:A->bool. ITERSETBIND 0 f s = s) /\
+   (!n f:A->A->bool s:A->bool. ITERSETBIND (SUC n) f s =
+                               SETBIND n ) /\ *)
+
+g `!s t. FINITE (KEYS (SYSTEM_AGENTS s)) /\ t IN ANT_UPDATE_SYSTEM s
+         ==> FINITE (KEYS (SYSTEM_AGENTS t))`;;
+e CHEAT_TAC;;
+let FINITE_AGENTS_ANT_UPDATE_SYSTEM = top_thm();;
+
+let IN_LET_THM = prove
+ (`!x a b c. x:A IN LET (\a1,2,. LET_END c) b <=> LET (\a. LET_END x IN c) b`,
+  REWRITE_TAC[LET_DEF; LET_END_DEF]);;
+
+let PAIR_EXTENSION = prove
+ (`!p q:A#B. p = q <=> FST p = FST q /\ SND p = SND q`,
+  REWRITE_TAC[FORALL_PAIR_THM; PAIR_EQ]);;
+
+g `!ag sys.
+     ag IN ANT_UPDATE_AGENTS sys <=>
+     KEYS ag = KEYS (SYSTEM_AGENTS sys) /\
+     (!k pos dir log pos' dir' log'.
+        k IN KEYS (SYSTEM_AGENTS sys) /\
+        GET (SYSTEM_AGENTS sys) k = pos,dir,log /\
+        GET ag k = pos',dir',log'
+        ==> log = log' /\
+            dir',pos' IN AGENT_STEP log (Input (dir,pos,SYSTEM_ENVIRONMENT sys)))`;;
+e (REPEAT GEN_TAC);;
+e (CLAIM_TAC "@env d. sys" `?env d. sys = System(env,d)`);;
+ e (STRUCT_CASES_TAC (SPEC `sys:system` (cases "system")));;
+ e (REWRITE_TAC[injectivity "system"]);;
+ e (REWRITE_TAC[PAIR_SURJECTIVE]);;
+e (POP_ASSUM SUBST_VAR_TAC);;
+e (REWRITE_TAC[ANT_UPDATE_AGENTS; SYSTEM_ENVIRONMENT; SYSTEM_AGENTS]);;
+e (REWRITE_TAC[IN_DICT_COLLECT; KEYS_FUNDICT; GET_FUNDICT]);;
+e (SIMP_TAC[]);;
+e (MATCH_MP_TAC (MESON [] `(A ==> B = C) ==> (A /\ B <=> A /\ C)`));;
+e (INTRO_TAC "keys");;
+e (EQ_TAC THEN REPEAT GEN_TAC);;
+ e (INTRO_TAC "hp" THEN REPEAT GEN_TAC);;
+ e (INTRO_TAC "k a b");;
+ e (FIRST_X_ASSUM (fun th -> (FIRST_ASSUM (MP_TAC  o MATCH_MP th))));;
+ e (CONV_TAC (TOP_SWEEP_CONV let_CONV));;
+ e LET_TAC;;
+ e (REWRITE_TAC[IN_IMAGE; EXISTS_PAIR_THM]);;
+ e STRIP_TAC;;
+ e (ASM_MESON_TAC[PAIR_EQ]);;
+e (INTRO_TAC "hp; !k; k");;
+e (CONV_TAC (TOP_SWEEP_CONV let_CONV));;
+e (REMOVE_THEN "hp" (MP_TAC o SPEC `k:num`));;
+e LET_TAC;;
+e (ASM_REWRITE_TAC[IN_IMAGE; EXISTS_PAIR_THM; PAIR_EQ]);;
+e (DISCH_THEN (MP_TAC o SPECL[`pos:num`; `dir:direction`; `log:(direction,num#num#num#num,num)agent`]));;
+e (REWRITE_TAC[]);;
+e (REWRITE_TAC[PAIR_EXTENSION]);;
+e (ASM_MESON_TAC[]);;
+let ANT_UPDATE_AGENTS_THM = top_thm();;
+
+let INVARIANT1 = new_definition
+  `INVARIANT1 (s1,s2,s3) <=> s1 > MAX s2 s3`;;
+
+let INVARIANT2 = new_definition
+  `INVARIANT2 sys <=> INVARIANT1 (SYSTEM_ENVIRONMENT sys) /\
+                      INVARIANT1 (ANT_UPDATE_ENVIRONMENT sys)`;;
+
+g `!s:system.
+     let (s1,s2,s3) = SYSTEM_ENVIRONMENT s in
+     let ag = SYSTEM_AGENTS s in
+     FINITE (KEYS ag) /\
+     INVARIANT2 s
+     ==> (!s'. s' IN ANT_UPDATE_SYSTEM s ==> INVARIANT2 s')`;;
+e GEN_TAC;;
+e (CLAIM_TAC "@sti ag. s" `?sti ag. s = System(sti,ag)`);;
+ e (STRUCT_CASES_TAC (SPEC `s:system` (cases "system")));;
+ e (REWRITE_TAC[injectivity "system"]);;
+ e (MESON_TAC[PAIR_SURJECTIVE]);;
+e (POP_ASSUM SUBST_VAR_TAC);;
+e (REWRITE_TAC[SYSTEM_ENVIRONMENT; SYSTEM_AGENTS]);;
+e (CONV_TAC (TOP_DEPTH_CONV let_CONV));;
+e LET_TAC;;
+e (POP_ASSUM (K ALL_TAC));;
+e (INTRO_TAC "inf inv2");;
+e (HYP_TAC "inv2: i1 i2" (REWRITE_RULE[INVARIANT2]));;
+e (HYP_TAC "i1" (REWRITE_RULE[SYSTEM_ENVIRONMENT; INVARIANT1]));;
+e (HYP_TAC "i2 -> i2'" (REWRITE_RULE[ANT_UPDATE_ENVIRONMENT; SYSTEM_ENVIRONMENT; SYSTEM_AGENTS]));;
+e (HYP_TAC "i2'" (CONV_RULE (TOP_SWEEP_CONV let_CONV)));;
+e (HYP_TAC "i2'" (REWRITE_RULE[INVARIANT1]));;
+e (REWRITE_TAC[ANT_UPDATE_SYSTEM; UPDATE_SYSTEM]);;
+e (REWRITE_TAC[FORALL_IN_IMAGE; ANT_UPDATE_AGENTS_THM]);;
+e (REWRITE_TAC[SYSTEM_ENVIRONMENT; SYSTEM_AGENTS]);;
+e (INTRO_TAC "![ag']; keys ag'");;
+e (ASM_REWRITE_TAC[INVARIANT2; SYSTEM_ENVIRONMENT]);;
+
+e (REWRITE_TAC[ANT_UPDATE_ENVIRONMENT; SYSTEM_ENVIRONMENT; SYSTEM_AGENTS]);;
+e (CONV_TAC (DEPTH_CONV let_CONV));;
+e (REWRITE_TAC[INVARIANT1]);;
+(* (map dest_var o variables o snd o top_goal) ();; *)
+e (SUBGOAL_THEN
+    `CARD {id:num | id IN KEYS ag' /\ FST (GET (ag':(num,num#direction#(direction,num#num#num#num,num)agent)dict) id) = 1} =
+     CARD {id:num | id IN KEYS ag /\ FST (GET ag id) = 0} +
+     CARD {id:num | id IN KEYS ag /\ FST (GET (ag:(num,num#direction#(direction,num#num#num#num,num)agent)dict) id) = 4}`
+    SUBST1_TAC);;
+e (SUBGOAL_THEN
+     `!s t u:num->bool. FINITE s /\ FINITE t /\ DISJOINT s t /\ u = s UNION t
+                        ==> CARD u = CARD s + CARD t`
+     MATCH_MP_TAC);;
+ e (REPEAT GEN_TAC THEN INTRO_TAC "s t disj u");;
+ e (REMOVE_THEN "u" SUBST_VAR_TAC);;
+ e (MATCH_MP_TAC CARD_UNION);;
+ e (ASM_REWRITE_TAC[]);;
+ e (REMOVE_THEN "disj" MP_TAC THEN SET_TAC[]);;
+e CONJ_TAC;;
+ e (MATCH_MP_TAC FINITE_SUBSET);;
+ e (EXISTS_TAC `KEYS (ag:(num,num#direction#(direction,num#num#num#num,num)agent)dict)`);;
+ e CONJ_TAC;;
+  e (ASM_MESON_TAC[]);;
+ e (REWRITE_TAC[SUBSET; FORALL_IN_GSPEC]);;
+ e (MESON_TAC[]);;
+e CONJ_TAC;;
+ e (MATCH_MP_TAC FINITE_SUBSET);;
+ e (EXISTS_TAC `KEYS (ag:(num,num#direction#(direction,num#num#num#num,num)agent)dict)`);;
+ e CONJ_TAC;;
+  e (ASM_MESON_TAC[]);;
+ e (REWRITE_TAC[SUBSET; FORALL_IN_GSPEC]);;
+ e (MESON_TAC[]);;
+e CONJ_TAC;;
+ e (REWRITE_TAC[DISJOINT; EXTENSION; NOT_IN_EMPTY; IN_INTER]);;
+ e (REWRITE_TAC[IN_ELIM_THM]);;
+ e (MESON_TAC[ARITH_RULE `~(0 = 4)`]);;
+e (MATCH_MP_TAC SUBSET_ANTISYM);;
+e CONJ_TAC;;
+ e (REWRITE_TAC[SUBSET; FORALL_IN_GSPEC; IN_UNION]);;
+ e (INTRO_TAC "!id; id pos");;
+
+
+ e (LABEL_ABBREV_TAC
+      `dir = FST (SND (GET (ag:(num,num#direction#(direction,num#num#num#num,num)agent)dict) id))`);;
+ e (POP_ASSUM MP_TAC);;
+ e (STRUCT_CASES_TAC (SPEC `dir:direction` (cases "direction")));;
+  e (INTRO_TAC "dir");;
+  e DISJ1_TAC;;
+ e (HYP_TAC "ag'" (SPECL[`id:num`; `0`; `Forward`]));;
+  e (REWRITE_TAC[IN_ELIM_THM]);;
+  e CONJ_TAC;;
+   e (ASM_MESON_TAC[]);;
+
+  e (HYP_TAC "ag': +" (SPECL
+       [ `SND (SND (GET (ag:(num,num#direction#(direction,num#num#num#num,num)agent)dict) id))`;
+         `1`;
+         `Forward`;
+         `SND (SND (GET (ag:(num,num#direction#(direction,num#num#num#num,num)agent)dict) id))`;
+       ]));;
+  e (ASM_REWRITE_TAC[]);;
+  e ANTS_TAC;;
+   e (CONJ_TAC THENL [ASM_MESON_TAC[]; ALL_TAC]);;
+   e CONJ_TAC;;
+    e (ASM_REWRITE_TAC[PAIR_EXTENSION]);;
+
+(type_of o rand o lhand o snd o top_goal) ();;
+
+
+
+
+g `!s:system.
+     let (s1,s2,s3) = SYSTEM_ENVIRONMENT s in
+     let ag = SYSTEM_AGENTS s in
+     FINITE (KEYS ag) /\
+     s1 > s2 + s3 /\
+     CARD {a | a IN KEYS ag /\ FST (GET ag a) = 1}
+     >
+     CARD {a | a IN KEYS ag /\ FST (GET ag a) = 2} +
+     CARD {a | a IN KEYS ag /\ FST (GET ag a) = 3}
+     ==>
+     let u = ITER 2 (SETBIND ANT_UPDATE_SYSTEM) {s} in
+     !s'. s' IN u
+          ==> let ag' = SYSTEM_AGENTS s' in
+              (!a. a IN KEYS ag' ==> FST (GET ag' a) IN {0,1,4})`;;
+e GEN_TAC;;
+e (LET_TAC THEN POP_ASSUM (LABEL_TAC "s123"));;
+e (LET_TAC THEN POP_ASSUM (LABEL_TAC "ag"));;
+e (INTRO_TAC "fin sti ag");;
+e LET_TAC;;
+e (POP_ASSUM (LABEL_TAC "u"));;
+e (HYP_TAC "u" (REWRITE_RULE[TWO; ONE; ITER]));;
+e (ABBREV_TAC `v = SETBIND ANT_UPDATE_SYSTEM {s}`);;
+e (POP_ASSUM (LABEL_TAC "v"));;
+e (HYP_TAC "v" (REWRITE_RULE[SETBIND_CLAUSES; UNION_EMPTY]));;
+e (CLAIM_TAC "rmk"
+     `!t. t IN v
+          ==>
+          let (t1,t2,t3) = SYSTEM_ENVIRONMENT t in
+          let bg = SYSTEM_AGENTS t in
+          FINITE (KEYS bg) /\
+          t1 > t2 + t3 /\
+          CARD {a | a IN KEYS bg /\ FST (GET bg a) = 1} >
+          CARD {a | a IN KEYS bg /\ FST (GET bg a) = 2} +
+          CARD {a | a IN KEYS bg /\ FST (GET bg a) = 3} /\
+          (!a. a IN KEYS bg /\ FST (GET bg a) = 2
+              ==> FST(SND(GET bg a)) = Backward) /\
+          (!a. a IN KEYS bg /\ FST (GET bg a) = 3
+              ==> FST(SND(GET bg a)) = Forward)`);;
+ e (REMOVE_THEN "u" (K ALL_TAC));;
+ e (INTRO_TAC "!t; t");;
+ e (LET_TAC THEN POP_ASSUM (LABEL_TAC "t123"));;
+ e (LET_TAC THEN POP_ASSUM (LABEL_TAC "bg"));;
+ e CONJ_TAC;;
+  e (REMOVE_THEN "bg" SUBST_VAR_TAC);;
+  e (MATCH_MP_TAC FINITE_AGENTS_ANT_UPDATE_SYSTEM);;
+  e (EXISTS_TAC `s:system`);;
+  e (ASM_MESON_TAC[]);;
+ e CONJ_TAC;;
+  e (REMOVE_THEN "bg" (K ALL_TAC));;
+  e (REMOVE_THEN "v" MP_TAC);;
+  e (ASM_REWRITE_TAC[ANT_UPDATE_SYSTEM; UPDATE_SYSTEM; ANT_UPDATE_ENVIRONMENT]);;
+  e (DISCH_THEN SUBST_VAR_TAC);;
+  e (REMOVE_THEN "t" MP_TAC);;
+  e (REWRITE_TAC[IN_IMAGE]);;
+  e (INTRO_TAC "@x. t _");;
+  e (POP_ASSUM SUBST_VAR_TAC);;
+  e (REMOVE_THEN "t123" MP_TAC);;
+  e (REWRITE_TAC[SYSTEM_ENVIRONMENT]);;
+  e (CONV_TAC (TOP_SWEEP_CONV let_CONV));;
+  e (REWRITE_TAC[PAIR_EQ]);;
+  e ASM_ARITH_TAC;;
+ e CONJ_TAC;; 
+  e (REMOVE_THEN "t123" (K ALL_TAC));;
+  e (REMOVE_THEN "bg" SUBST_VAR_TAC);;
+  e (REMOVE_THEN "v" SUBST_VAR_TAC);;
+  e (REMOVE_THEN "t" MP_TAC);;
+  e (REWRITE_TAC[ANT_UPDATE_SYSTEM; UPDATE_SYSTEM; IN_IMAGE]);;
+  e (INTRO_TAC "@d. t d");;
+  e (REMOVE_THEN "t" SUBST_VAR_TAC);;
+  e (REWRITE_TAC[SYSTEM_AGENTS]);;
+  e (REMOVE_THEN "d" MP_TAC);;
+  e (REWRITE_TAC[ANT_UPDATE_AGENTS_THM]);;
+  e (INTRO_TAC "keys ag");;
+
+{a | a IN KEYS d /\ FST (GET d a) = 1} =
+{a | a IN KEYS d /\ FST (GET d a) = 0 \/ FST (GET d a) = 0}
+
+
+  (* search[`DICT_COLLECT`];; *)
+  e (ASM_REWRITE_TAC[IN_DICT_COLLECT; KEYS_FUNDICT; GET_FUNDICT]);;
+  e (SIMP_TAC[]);;
 
 (* ----------------------------------------------------------------------- *)
 (* ----------------------------------------------------------------------- *)
-(*    SIMULAZIONI  *)
+(*    SIMULAZIONI                                                          *)
 (* ----------------------------------------------------------------------- *)
 (* ----------------------------------------------------------------------- *)
 
 add_ants_thl [FINITE_EMPTY; FINITE_INSERT; GETOPTION];;
 
-
 (* Una formica, 2 step. *)
 let tm0 = time (run_conv
-   (ANTS_COMPUTE_CONV THENC
-    REWRITE_CONV[]))
+   (ANTS_COMPUTE_CONV THENC REWRITE_CONV[]))
   `SETBIND ANT_UPDATE_SYSTEM
    (ANT_UPDATE_SYSTEM
      (let sti = (0,0,0) in
@@ -91,8 +333,7 @@ let tm0 = time (run_conv
 
 (* 2 formiche, 2 step. *)
 let tm0 = time (run_conv
-   (ANTS_COMPUTE_CONV THENC
-    REWRITE_CONV[]))
+   (ANTS_COMPUTE_CONV THENC REWRITE_CONV[]))
   `SETBIND ANT_UPDATE_SYSTEM
    (ANT_UPDATE_SYSTEM
      (let sti = (0,0,0) in
@@ -102,8 +343,7 @@ let tm0 = time (run_conv
 
 (* 3 formiche, 2 step. *)
 let tm0 = time (run_conv
-   (ANTS_COMPUTE_CONV THENC
-    REWRITE_CONV[]))
+   (ANTS_COMPUTE_CONV THENC REWRITE_CONV[]))
   `SETBIND ANT_UPDATE_SYSTEM
    (ANT_UPDATE_SYSTEM
      (let sti = (0,0,0) in
@@ -115,8 +355,7 @@ let tm0 = time (run_conv
       System(sti,ants):system))`;;
 
 let tm0 = time (run_conv
-   (ANTS_COMPUTE_CONV THENC
-    REWRITE_CONV[]))
+   (ANTS_COMPUTE_CONV THENC REWRITE_CONV[]))
   `SETBIND ANT_UPDATE_SYSTEM
    (SETBIND ANT_UPDATE_SYSTEM
    (ANT_UPDATE_SYSTEM
