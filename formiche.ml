@@ -114,7 +114,7 @@ let NEW_ANT = define
   `NEW_ANT (sti:num^3) (pos,dir) =
    if pos = P1 then {((if dir then P4 else P0),dir)} else
    if pos = P2 then {((if dir then P3 else P0),dir)} else
-   if pos = P3 then {((if dir then P4 else P3),dir)} else
+   if pos = P3 then {((if dir then P4 else P2),dir)} else
    if pos = P0
    then {(pos,T) | sti$2 <= sti$1 /\ pos = P1 \/
                    sti$1 <= sti$2 /\ pos = P2}
@@ -126,7 +126,7 @@ let NEW_ANT_THM = prove
      NEW_ANT (sti:num^3) (pos,dir) =
      if pos = P1 then {((if dir then P4 else P0),dir)} else
      if pos = P2 then {((if dir then P3 else P0),dir)} else
-     if pos = P3 then {((if dir then P4 else P3),dir)} else
+     if pos = P3 then {((if dir then P4 else P2),dir)} else
      if pos = P0
      then (if sti$2 <= sti$1 then {(P1,T)} else {}) UNION
           (if sti$1 <= sti$2 then {(P2,T)} else {})
@@ -200,6 +200,11 @@ let LISTCOLLECT_2 =
 let condth1 = prove
  (`!f:A->B b s t.
      IMAGE f (if b then s else t) = if b then IMAGE f s else IMAGE f t`,
+  REPEAT GEN_TAC THEN COND_CASES_TAC THEN REWRITE_TAC[]);;
+
+let condth2 = prove
+ (`!x:A b s t.
+     x IN (if b then s else t) <=> if b then x IN s else x IN t`,
   REPEAT GEN_TAC THEN COND_CASES_TAC THEN REWRITE_TAC[]);;
 
 let NEW_SYSTEM_2 =
@@ -298,3 +303,78 @@ let tm =
   `ITER 10 (SETBIND NEW_SYSTEM)
            {System (vector[(P0,T); (P1,F); (P2,F); (P4,F)])
                    (vector[0; 0; 0]) : 4 system}`;;
+
+
+
+
+(* ========================================================================= *)
+(* Formal proof.                                                             *)
+(* ========================================================================= *)
+
+let INVARIANT_STI = new_definition
+  `INVARIANT_STI (sti:num^3) <=> sti$1 > MAX (sti$2) (sti$3)`;;
+
+let INVARIANT = new_definition
+  `INVARIANT (sys:N system) <=> INVARIANT_STI (STI sys) /\
+                                INVARIANT_STI (NEW_STI sys)`;;
+
+(* g `!sys sys':N system.
+     INVARIANT sys /\ sys' IN NEW_SYSTEM sys
+     ==> INVARIANT sys'`;;
+e (ONCE_REWRITE_TAC[FORALL_SYSTEM_THM] THEN GEN_TAC THEN GEN_TAC);;
+e (REWRITE_TAC[IMP_CONJ; RIGHT_FORALL_IMP_THM]);;
+e (INTRO_TAC "i");;
+e (REWRITE_TAC[NEW_SYSTEM; FORALL_IN_GSPEC; STI; ANT]);;
+e (INTRO_TAC "!ant'; ant'");;
+e (HYP_TAC "i : i1 i2" (REWRITE_RULE[INVARIANT; STI]));;
+e (ASM_REWRITE_TAC[INVARIANT; STI]);;
+e (HYP_TAC "i1 -> i1'" (REWRITE_RULE[INVARIANT_STI; VECTOR_3]));;
+e (HYP_TAC "i2 -> i2'" (REWRITE_RULE[NEW_STI; INVARIANT_STI; VECTOR_3]));;
+e (REWRITE_TAC[NEW_STI; INVARIANT_STI; VECTOR_3]);; *)
+
+
+g `!sys sys':2 system.
+     INVARIANT sys /\ sys' IN NEW_SYSTEM sys
+     ==> INVARIANT sys'`;;
+e (ONCE_REWRITE_TAC[FORALL_SYSTEM_THM] THEN GEN_TAC THEN GEN_TAC);;
+e (REWRITE_TAC[IMP_CONJ; RIGHT_FORALL_IMP_THM]);;
+e (INTRO_TAC "i");;
+e (REWRITE_TAC[NEW_SYSTEM; FORALL_IN_GSPEC; STI; ANT]);;
+e (REWRITE_TAC[DIMINDEX_2; FORALL_2]);;
+e GEN_TAC;;
+e (DESTRUCT_TAC "@p01 d01. ant1" (ISPEC `(ant:ant^2)$1` PAIR_SURJECTIVE));;
+e (DESTRUCT_TAC "@p02 d02. ant2" (ISPEC `(ant:ant^2)$2` PAIR_SURJECTIVE));;
+e (DESTRUCT_TAC "@p11 d11. ant'1" (ISPEC `(ant':ant^2)$1` PAIR_SURJECTIVE));;
+e (DESTRUCT_TAC "@p12 d12. ant'2" (ISPEC `(ant':ant^2)$2` PAIR_SURJECTIVE));;
+e (ASM_REWRITE_TAC[NEW_ANT_THM; condth2; IN_INSERT; NOT_IN_EMPTY; PAIR_EQ; IN_UNION]);;
+e (REWRITE_TAC[MESON[] `(if b then c else F) <=> b /\ c`]);;
+e (INTRO_TAC "ant'");;
+e (REMOVE_THEN "i" MP_TAC);;
+e (REWRITE_TAC[INVARIANT; STI]);;
+e (SIMP_TAC[]);;
+e (REWRITE_TAC[NEW_STI; DIMINDEX_2; VECTOR_3]);;
+e (CONV_TAC (ONCE_DEPTH_CONV NUMSEG_CONV));;
+e (ASM_SIMP_TAC[NSUM_CLAUSES; FINITE_EMPTY; FINITE_INSERT; NOT_IN_EMPTY;
+                IN_INSERT; ARITH_EQ; ADD_0]);;
+e (REWRITE_TAC[INVARIANT_STI; VECTOR_3]);;
+e (INTRO_TAC "sti0 sti1");;
+e (REMOVE_THEN "ant'" MP_TAC);;
+e (SUBGOAL_THEN `sti:num^3$2 <= sti$1 /\ ~(sti$1 <= sti$2) /\ sti$3 <= sti$1 /\ ~(sti$1 <= sti$3)`
+    (fun th -> REWRITE_TAC[th]));;
+ e ASM_ARITH_TAC;;
+e (REMOVE_THEN "sti1" MP_TAC);;
+e (POP_ASSUM_LIST (MP_TAC o end_itlist CONJ));;
+e (STRUCT_CASES_TAC (SPEC `p01:position` (cases "position")) THEN
+   REWRITE_TAC[distinctness "position"; ADD] THEN
+   REPEAT STRIP_TAC THEN REPEAT (FIRST_X_ASSUM SUBST_VAR_TAC) THEN
+   REWRITE_TAC[distinctness "position"] THEN
+   TRY (POP_ASSUM_LIST (MP_TAC o end_itlist CONJ)) THEN
+   STRUCT_CASES_TAC (SPEC `p02:position` (cases "position")) THEN
+   REWRITE_TAC[distinctness "position"; ADD; ADD_0] THEN
+   REPEAT STRIP_TAC THEN REPEAT (FIRST_X_ASSUM SUBST_VAR_TAC) THEN
+   ASM_REWRITE_TAC[distinctness "position"] THEN TRY ASM_ARITH_TAC THEN
+   POP_ASSUM_LIST (MP_TAC o end_itlist CONJ) THEN
+   BOOL_CASES_TAC `d01:bool` THEN REWRITE_TAC[distinctness "position"] THEN
+   BOOL_CASES_TAC `d02:bool` THEN REWRITE_TAC[distinctness "position"] THEN
+   REPEAT STRIP_TAC THEN REPEAT (FIRST_X_ASSUM SUBST_VAR_TAC) THEN
+   ASM_REWRITE_TAC[distinctness "position"] THEN TRY ASM_ARITH_TAC);;
