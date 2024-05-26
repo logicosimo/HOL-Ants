@@ -5,7 +5,9 @@
 (* ========================================================================= *)
 
 needs "Library/iter.ml";;
+needs "Multivariate/vectors.ml";;
+
 needs "setbind.ml";;
-needs "comp.ml";;
+needs "compute.ml";;
 needs "misc.ml";;
 needs "ant.ml";;
