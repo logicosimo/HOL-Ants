@@ -1,0 +1,13 @@
+load_path := "/workspaces/hol-light-devcontainer/code/HOL-Ants" :: !load_path;;
+needs "Library/iter.ml";;
+needs "Library/permutations.ml";;
+needs "setbind.ml";;
+needs "dict.ml";;
+needs "conv.ml";;
+needs "comp.ml";;
+needs "misc.ml";;
+needs "dicttrie.ml";;
+needs "move.ml";;
+needs "agent.ml";;
+needs "Ntrie/ntrie.ml";;
+needs "sys.ml";;
