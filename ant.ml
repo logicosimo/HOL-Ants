@@ -1,15 +1,8 @@
 (* ========================================================================= *)
 (* Modelling framework for an idealised system of foraging ants.             *)
 (*                                                                           *)
-(* (c) Copyright, Marco Maggesi, Cosimo Perini Brogi 2024.                   *)
+(* (c) Copyright, Marco Maggesi, Cosimo Perini Brogi 2023-2024.              *)
 (* ========================================================================= *)
-
-load_path := "/workspaces/hol-light-devcontainer/code/HOL-Ants" :: !load_path;;
-
-needs "setbind.ml";;
-needs "conv.ml";;
-needs "comp.ml";;
-loadt "formiche_misc.ml";;
 
 (* ------------------------------------------------------------------------- *)
 (* Rewriting rules for computations.                                         *)
@@ -227,13 +220,8 @@ e (ASM_REWRITE_TAC[injectivity "system"; VECTOR_LIST_OF_VECTOR]);;
 let IN_NEW_SYSTEM = top_thm();;
 
 (* ========================================================================= *)
+(* Simulations                                                               *)
 (* ========================================================================= *)
-(*                                                                           *)
-(*                   Simulations                                             *)
-(*                                                                           *)
-(* ========================================================================= *)
-(* ========================================================================= *)
-
 
 (* ------------------------------------------------------------------------- *)
 (* 2 ants.                                                                   *)
@@ -246,20 +234,26 @@ let LISTCOLLECT_2 =
    NUM_REDUCE_CONV)
   `LISTCOLLECT 2 (u:num->A->bool)`;;
 
-let condth1 = prove
+search[`f (if b then x else y) = aa`];;
+
+let APP_COND = prove
+ (`!f:A->B b x y. f (if b then x else y) = if b then f x else f y`,
+  REPEAT GEN_TAC THEN MATCH_ACCEPT_TAC COND_RAND);;
+
+let IMAGE_COND = prove
  (`!f:A->B b s t.
      IMAGE f (if b then s else t) = if b then IMAGE f s else IMAGE f t`,
-  REPEAT GEN_TAC THEN COND_CASES_TAC THEN REWRITE_TAC[]);;
+  REWRITE_TAC[ISPEC `IMAGE f` APP_COND]);;
 
-let condth2 = prove
+let IN_COND = prove
  (`!x:A b s t.
      x IN (if b then s else t) <=> if b then x IN s else x IN t`,
-  REPEAT GEN_TAC THEN COND_CASES_TAC THEN REWRITE_TAC[]);;
+  REWRITE_TAC[ISPEC `(IN) x` APP_COND]);;
 
-let condth3 = prove
+let SETBIND_COND = prove
  (`!f:A->B->bool b s t.
      SETBIND f (if b then s else t) = if b then SETBIND f s else SETBIND f t`,
-  REPEAT GEN_TAC THEN COND_CASES_TAC THEN REWRITE_TAC[]);;
+  REWRITE_TAC[ISPEC `SETBIND f` APP_COND]);;
 
 (* NEW_SYSTEM for two ants *)
 let NEW_SYSTEM_2 =
@@ -272,13 +266,14 @@ let NEW_SYSTEM_2 =
     NUM_REDUCE_CONV THENC
     REWRITE_CONV[NEW_ANT_THM; VECTOR_2; VECTOR_3] THENC
     ONCE_DEPTH_CONV let_CONV THENC
-    REWRITE_CONV[condth1; IMAGE_CLAUSES; IMAGE_UNION])
+    REWRITE_CONV[IMAGE_COND; IMAGE_CLAUSES; IMAGE_UNION])
   (ISPEC `System (vector[(pos1,dir1); (pos2,dir2)])
                  (vector[s1; s2; s3]) : 2 system`
          NEW_SYSTEM_ALT);;
 
 add_ants_thl [NEW_SYSTEM_2];;
 
+(* 
 let tm =
   time (run_conv (TOP_SWEEP_CONV num_CONV THENC
                   REWRITE_CONV[ITER] THENC
@@ -286,6 +281,15 @@ let tm =
   `ITER 10 (SETBIND NEW_SYSTEM)
            {System (vector[(P1,T); (P2,F)])
                    (vector[0; 0; 0]) : 2 system}`;;
+
+CPU time (user): 0.376958
+val tm : term =
+  `{System (vector [P1,F; P1,T]) (vector [9; 1; 0]),
+    System (vector [P1,F; P0,F]) (vector [8; 2; 1]),
+    System (vector [P4,T; P0,F]) (vector [7; 3; 2]),
+    System (vector [P4,T; P1,F]) (vector [5; 4; 3]),
+    System (vector [P3,T; P1,F]) (vector [4; 5; 3])}`
+*)
 
 (* ------------------------------------------------------------------------- *)
 (* 3 ants.                                                                   *)
@@ -308,13 +312,14 @@ let NEW_SYSTEM_3 =
     NUM_REDUCE_CONV THENC
     REWRITE_CONV[NEW_ANT_THM; VECTOR_3] THENC
     ONCE_DEPTH_CONV let_CONV THENC
-    REWRITE_CONV[condth1; IMAGE_CLAUSES; IMAGE_UNION])
+    REWRITE_CONV[IMAGE_COND; IMAGE_CLAUSES; IMAGE_UNION])
   (ISPEC `System (vector[(pos1,dir1); (pos2,dir2); (pos3,dir3)])
                  (vector[s1; s2; s3]) : 3 system`
          NEW_SYSTEM_ALT);;
 
 add_ants_thl [NEW_SYSTEM_3];;
 
+(* 
 let tm =
   time (run_conv (TOP_SWEEP_CONV num_CONV THENC
                   REWRITE_CONV[ITER] THENC
@@ -322,6 +327,22 @@ let tm =
   `ITER 10 (SETBIND NEW_SYSTEM)
            {System (vector[(P0,T); (P1,F); (P2,F)])
                    (vector[0; 0; 0]) : 3 system}`;;
+
+CPU time (user): 3.947183
+val tm : term =
+  `{System (vector [P4,T; P1,T; P1,T]) (vector [14; 1; 0]),
+    System (vector [P4,T; P0,F; P1,T]) (vector [13; 2; 1]),
+    System (vector [P4,T; P1,T; P0,F]) (vector [13; 2; 1]),
+    System (vector [P4,T; P0,F; P0,F]) (vector [12; 3; 2]),
+    System (vector [P1,T; P0,F; P0,F]) (vector [10; 4; 3]),
+    System (vector [P1,T; P1,T; P1,T]) (vector [12; 2; 1]),
+    System (vector [P1,T; P0,F; P1,T]) (vector [11; 3; 2]),
+    System (vector [P1,T; P1,F; P1,T]) (vector [9; 4; 3]),
+    System (vector [P1,T; P1,T; P0,F]) (vector [11; 3; 2]),
+    System (vector [P1,T; P1,T; P1,F]) (vector [9; 4; 3]),
+    System (vector [P2,F; P4,T; P4,T]) (vector [2; 9; 9]),
+    System (vector [P3,F; P4,T; P4,T]) (vector [1; 10; 9])}`
+*)
 
 (* ------------------------------------------------------------------------- *)
 (* 4 ants.                                                                   *)
@@ -344,13 +365,14 @@ let NEW_SYSTEM_4 =
     NUM_REDUCE_CONV THENC
     REWRITE_CONV[NEW_ANT_THM; VECTOR_3; VECTOR_4] THENC
     ONCE_DEPTH_CONV let_CONV THENC
-    REWRITE_CONV[condth1; IMAGE_CLAUSES; IMAGE_UNION])
+    REWRITE_CONV[IMAGE_COND; IMAGE_CLAUSES; IMAGE_UNION])
   (ISPEC `System (vector[(pos1,dir1); (pos2,dir2); (pos3,dir3); (pos4,dir4)])
                  (vector[s1; s2; s3]) : 4 system`
          NEW_SYSTEM_ALT);;
 
 add_ants_thl [NEW_SYSTEM_4];;
 
+(* 
 let tm =
   time (run_conv (TOP_SWEEP_CONV num_CONV THENC
                   REWRITE_CONV[ITER] THENC
@@ -359,6 +381,47 @@ let tm =
            {System (vector[(P0,T); (P1,F); (P2,F); (P4,F)])
                    (vector[0; 0; 0]) : 4 system}`;;
 
+CPU time (user): 16.375348
+val tm : term =
+  `{System (vector [P1,T; P0,F; P0,F; P1,F]) (vector [9; 1; 0]),
+    System (vector [P1,T; P1,F; P0,F; P1,F]) (vector [7; 2; 1]),
+    System (vector [P1,T; P0,F; P1,F; P1,F]) (vector [7; 2; 1]),
+    System (vector [P1,T; P1,F; P1,F; P1,F]) (vector [5; 3; 2]),
+    System (vector [P0,F; P0,F; P0,F; P1,F]) (vector [8; 2; 1]),
+    System (vector [P0,F; P1,F; P0,F; P1,F]) (vector [6; 3; 2]),
+    System (vector [P0,F; P1,F; P0,F; P4,T]) (vector [5; 4; 3]),
+    System (vector [P0,F; P0,F; P1,F; P1,F]) (vector [6; 3; 2]),
+    System (vector [P0,F; P0,F; P1,F; P4,T]) (vector [5; 4; 3]),
+    System (vector [P0,F; P1,F; P1,F; P1,F]) (vector [4; 4; 3]),
+    System (vector [P0,F; P3,F; P1,F; P1,F]) (vector [4; 4; 3]),
+    System (vector [P0,F; P1,F; P3,F; P1,F]) (vector [4; 4; 3]),
+    System (vector [P0,F; P3,F; P3,F; P1,F]) (vector [4; 4; 3]),
+    System (vector [P0,F; P1,F; P1,F; P3,F]) (vector [4; 4; 3]),
+    System (vector [P0,F; P3,F; P1,F; P3,F]) (vector [4; 4; 3]),
+    System (vector [P0,F; P1,F; P3,F; P3,F]) (vector [4; 4; 3]),
+    System (vector [P0,F; P3,F; P3,F; P3,F]) (vector [4; 4; 3]),
+    System (vector [P0,F; P3,F; P3,F; P4,T]) (vector [3; 5; 4]),
+    System (vector [P1,T; P0,F; P0,F; P4,T]) (vector [8; 2; 1]),
+    System (vector [P1,T; P1,F; P0,F; P4,T]) (vector [6; 3; 2]),
+    System (vector [P1,T; P1,F; P0,F; P3,T]) (vector [5; 4; 2]),
+    System (vector [P1,T; P0,F; P1,F; P4,T]) (vector [6; 3; 2]),
+    System (vector [P1,T; P0,F; P1,F; P3,T]) (vector [5; 4; 2]),
+    System (vector [P2,T; P1,F; P1,F; P3,T]) (vector [3; 5; 3]),
+    System (vector [P2,T; P3,F; P1,F; P3,T]) (vector [3; 5; 3]),
+    System (vector [P2,T; P1,F; P3,F; P3,T]) (vector [3; 5; 3]),
+    System (vector [P2,T; P3,F; P3,F; P3,T]) (vector [3; 5; 3]),
+    System (vector [P0,F; P0,F; P0,F; P4,T]) (vector [7; 3; 2]),
+    System (vector [P0,F; P0,F; P0,F; P3,T]) (vector [6; 4; 2]),
+    System (vector [P0,F; P3,F; P0,F; P3,T]) (vector [4; 5; 3]),
+    System (vector [P2,F; P3,F; P0,F; P3,T]) (vector [3; 5; 4]),
+    System (vector [P0,F; P3,F; P2,F; P3,T]) (vector [3; 5; 4]),
+    System (vector [P2,F; P3,F; P2,F; P3,T]) (vector [2; 5; 5]),
+    System (vector [P0,F; P0,F; P3,F; P3,T]) (vector [4; 5; 3]),
+    System (vector [P2,F; P0,F; P3,F; P3,T]) (vector [3; 5; 4]),
+    System (vector [P0,F; P2,F; P3,F; P3,T]) (vector [3; 5; 4]),
+    System (vector [P2,F; P2,F; P3,F; P3,T]) (vector [2; 5; 5]),
+    System (vector [P2,F; P3,F; P3,F; P3,T]) (vector [1; 6; 5])}`
+*)
 
 (* ========================================================================= *)
 (* Formal proof.                                                             *)
@@ -388,7 +451,7 @@ g `!sti p d p' d'.
 e (REWRITE_TAC[FORALL_VECTOR_3; INVARIANT_STI; VECTOR_3]);;
 e (REWRITE_TAC[ARITH_RULE `!x y z. x > MAX y z <=> y < x /\ z < x`]);;
 e (REPEAT GEN_TAC THEN INTRO_TAC "sti");;
-e (REWRITE_TAC[NEW_ANT; VECTOR_3; condth2; IN_ELIM_THM; IN_INSERT;
+e (REWRITE_TAC[NEW_ANT; VECTOR_3; IN_COND; IN_ELIM_THM; IN_INSERT;
                NOT_IN_EMPTY; PAIR_EQ]);;
 e (REWRITE_TAC[EXISTS_POSITION_THM; distinctness "position"]);;
 e (STRUCT_CASES_TAC (SPEC `p:position` POSITION_CASES) THEN

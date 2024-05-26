@@ -1,6 +1,8 @@
 (* ========================================================================= *)
 (* COMPUTE_CONV, a conversion for call-by-value evaluation.                  *)
-(* Copyright (c) 2014-2016 Marco Maggesi                                     *)
+(* Inspired by the example given in Harrison's "HOL Light Tutorial"          *)
+(* (Section 21.4 Execution)                                                  *)
+(* Copyright (c) 2014-2024 Marco Maggesi                                     *)
 (* ========================================================================= *)
 
 (* ------------------------------------------------------------------------- *)
@@ -13,14 +15,28 @@
 (*    unnecessary application of TRANS).                                     *)
 (* ------------------------------------------------------------------------- *)
 
-(* needs "Snippets/conv.hl";; *)
+(* ------------------------------------------------------------------------- *)
+(* Conversions.                                                              *)
+(* ------------------------------------------------------------------------- *)
 
-(* let debug_conv (conv:conv) : conv = fun tm ->
-  pp_print_string std_formatter "DEBUG: ";
-  pp_print_term std_formatter tm;
-  conv tm;;
+let (FAIL_CONV : string -> conv) =
+  fun tok _ -> failwith tok;;
 
-let debug_conv (conv:conv) : conv = fun tm -> conv tm;; *)
+let COND_COMPUTE_CONV : conv =
+  let tth,fth = CONJ_PAIR (SPEC_ALL COND_CLAUSES) in
+  REWR_CONV tth ORELSEC REWR_CONV fth ORELSEC FAIL_CONV "COND_COMPUTE_CONV";;
+
+let CONJ_COMPUTE_CONV : conv =
+  let tth,fth = CONJ_PAIR (TAUT `(T /\ a <=> a) /\ (F /\ a <=> F)`) in
+  REWR_CONV tth ORELSEC REWR_CONV fth ORELSEC FAIL_CONV "CONJ_COMPUTE_CONV";;
+
+let DISJ_COMPUTE_CONV : conv =
+  let tth,fth = CONJ_PAIR (TAUT `(T \/ a <=> T) /\ (F \/ a <=> a)`) in
+  REWR_CONV tth ORELSEC REWR_CONV fth ORELSEC FAIL_CONV "DISJ_COMPUTE_CONV";;
+
+(* ------------------------------------------------------------------------- *)
+(* The main conversion.                                                      *)
+(* ------------------------------------------------------------------------- *)
 
 let COMPUTE_DEPTH_CONV (conv:conv) : conv =
   let is_match = function
@@ -48,11 +64,11 @@ let COMPUTE_DEPTH_CONV (conv:conv) : conv =
     if is_gabs tm then
       fail ()
     else if is_cond tm then
-      THENQC (RATOR_CONV (LAND_CONV RUNC)) (THENCQC COND_CONV RUNC) tm
+      THENQC (RATOR_CONV (LAND_CONV RUNC)) (THENCQC COND_COMPUTE_CONV RUNC) tm
     else if is_conj tm then
-      THENQC (LAND_CONV RUNC) (THENCQC CONJ_CONV RUNC) tm
+      THENQC (LAND_CONV RUNC) (THENCQC CONJ_COMPUTE_CONV RUNC) tm
     else if is_disj tm then
-      THENQC (LAND_CONV RUNC) (THENCQC DISJ_CONV RUNC) tm
+      THENQC (LAND_CONV RUNC) (THENCQC DISJ_COMPUTE_CONV RUNC) tm
     else if is_let tm then
       THENQC (SUBLET_CONV RUNC) (THENCQC let_CONV RUNC) tm
     else if is_match tm then
