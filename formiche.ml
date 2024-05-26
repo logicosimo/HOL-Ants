@@ -1,3 +1,9 @@
+(* ========================================================================= *)
+(* Modelling framework for an idealised system of foraging ants.             *)
+(*                                                                           *)
+(* (c) Copyright, Marco Maggesi, Cosimo Perini Brogi 2024.                   *)
+(* ========================================================================= *)
+
 load_path := "/workspaces/hol-light-devcontainer/code/HOL-Ants" :: !load_path;;
 
 needs "setbind.ml";;
@@ -107,6 +113,13 @@ let NEW_STI_DEF = define
    lambda p. sti$p +
              nsum (1..dimindex(:N))
                   (\i. if FST(ant$i) = PP p then 1 else 0)`;;
+
+let NEW_STI_COMPONENT = prove
+ (`!p. 1 <= p /\ p <= 3
+       ==> NEW_STI (System ant sti : N system) $ p =
+           sti$p + nsum (1..dimindex(:N))
+                        (\i. if FST(ant$i) = PP p then 1 else 0)`,
+  SIMP_TAC[NEW_STI_DEF; LAMBDA_BETA; DIMINDEX_3]);;
 
 let NEW_STI = REWRITE_RULE[LAMBDA_3; PP] NEW_STI_DEF;;
 
@@ -476,3 +489,34 @@ e (REMOVE_THEN "i2" MP_TAC);;
 e (REWRITE_TAC[INVARIANT_STI]);;
 e ARITH_TAC;;
 let INVARIANT_THM = top_thm();;
+
+let INVARIANT_ANT = new_definition
+  `INVARIANT_ANT (ant:ant^N) <=>
+   (!i. 1 <= i /\ i <= dimindex(:N) ==> FST(ant$i) IN {P0,P1,P4})`;;
+
+g `!sys sys' sys'':N system.
+     sys' IN NEW_SYSTEM sys /\
+     sys'' IN NEW_SYSTEM sys' /\
+     INVARIANT_STI (STI sys) /\
+     INVARIANT_STI (STI sys')
+     ==> INVARIANT_ANT (ANT sys'')`;;
+e (REWRITE_TAC[FORALL_SYSTEM_THM; IN_NEW_SYSTEM; STI; ANT]);;
+e (REPEAT GEN_TAC);;
+e (REWRITE_TAC[IN_LISTCOLLECT; LENGTH_LIST_OF_VECTOR]);;
+e (SIMP_TAC[EL_LIST_OF_VECTOR]);;
+e (REWRITE_TAC[FORALL_LT_THM]);;
+e (SIMP_TAC[ARITH_RULE `!i. 1 <= i ==> SUC(PRE i) = i`]);;
+e (INTRO_TAC "(sti' ant') (sti'' ant'') inv0 inv1");;
+e (REWRITE_TAC[NOT_IN_EMPTY; IN_INSERT]);;
+e (HYP_TAC "sti'" GSYM);;
+e (HYP_TAC "sti''" GSYM);;
+e (REWRITE_TAC[INVARIANT_ANT; NOT_IN_EMPTY; IN_INSERT]);;
+e (INTRO_TAC "!i; i");;
+e (REMOVE_THEN "ant''" (MP_TAC o SPEC `i:num`));;
+e (ASM_SIMP_TAC[INVARIANT_IN_NEW_ANT_ALT]);;
+e (STRIP_TAC THEN ASM_SIMP_TAC[POSITION_DISTINCTNESS]);;
+ e (REMOVE_THEN "ant'" (MP_TAC o SPEC `i:num`));;
+ e (ASM_SIMP_TAC[INVARIANT_IN_NEW_ANT_ALT; POSITION_DISTINCTNESS]);;
+e (REMOVE_THEN "ant'" (MP_TAC o SPEC `i:num`));;
+e (ASM_SIMP_TAC[INVARIANT_IN_NEW_ANT_ALT; POSITION_DISTINCTNESS]);;
+let INVARIANT_ANT_THM = top_thm();;

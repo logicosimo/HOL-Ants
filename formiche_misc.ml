@@ -1,5 +1,5 @@
 (* ========================================================================= *)
-(* Formiche Miscellanea                                                      *)
+(* Miscellanea                                                               *)
 (* ========================================================================= *)
 
 let PAIR_EXTENSION = prove
@@ -67,7 +67,8 @@ e (REWRITE_TAC[list_of_vector]);;
 e (MATCH_MP_TAC LIST_OF_SEQ_UNIQUE);;
 e (ASM_REWRITE_TAC[vector]);;
 e (INTRO_TAC "!i; i");;
-e (SUBGOAL_THEN `1 <= SUC i /\ SUC i <= dimindex(:N)` (fun th -> SIMP_TAC[LAMBDA_BETA; th]));;
+e (SUBGOAL_THEN `1 <= SUC i /\ SUC i <= dimindex(:N)`
+     (fun th -> SIMP_TAC[LAMBDA_BETA; th]));;
  e ASM_ARITH_TAC;;
 e (AP_THM_TAC THEN AP_TERM_TAC THEN ASM_ARITH_TAC);;
 let LIST_OF_VECTOR_VECTOR = top_thm();;
