@@ -1,4 +1,4 @@
-# HOL-Ants
+# HOL-Ants: Pathfinding ants formalised in the HOL Light theorem prover
 
 This repository contains a detailed, principled model in HOL Light simulating foraging ants in an idealized environment. 
 
