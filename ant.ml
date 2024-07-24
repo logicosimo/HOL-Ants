@@ -344,6 +344,31 @@ val tm : term =
     System (vector [P3,F; P4,T; P4,T]) (vector [1; 10; 9])}`
 *)
 
+(* 
+let tm =
+  time (run_conv (TOP_SWEEP_CONV num_CONV THENC
+                  REWRITE_CONV[ITER] THENC
+                  ANTS_COMPUTE_CONV))
+  `ITER 30 (SETBIND NEW_SYSTEM)
+           {System (vector[(P0,T); (P1,F); (P2,F)])
+                   (vector[0; 0; 0]) : 3 system}`;;
+
+CPU time (user): 19.807974
+val tm : term =
+  `{System (vector [P4,T; P1,T; P1,T]) (vector [44; 1; 0]),
+    System (vector [P4,T; P0,F; P1,T]) (vector [43; 2; 1]),
+    System (vector [P4,T; P1,T; P0,F]) (vector [43; 2; 1]),
+    System (vector [P4,T; P0,F; P0,F]) (vector [42; 3; 2]),
+    System (vector [P1,T; P0,F; P0,F]) (vector [40; 4; 3]),
+    System (vector [P1,T; P1,T; P1,T]) (vector [42; 2; 1]),
+    System (vector [P1,T; P0,F; P1,T]) (vector [41; 3; 2]),
+    System (vector [P1,T; P1,F; P1,T]) (vector [39; 4; 3]),
+    System (vector [P1,T; P1,T; P0,F]) (vector [41; 3; 2]),
+    System (vector [P1,T; P1,T; P1,F]) (vector [39; 4; 3]),
+    System (vector [P2,T; P2,F; P2,F]) (vector [2; 28; 29]),
+    System (vector [P0,F; P2,F; P2,F]) (vector [1; 29; 30])}`
+*)
+
 (* ------------------------------------------------------------------------- *)
 (* 4 ants.                                                                   *)
 (* ------------------------------------------------------------------------- *)
