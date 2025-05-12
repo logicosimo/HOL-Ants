@@ -2,113 +2,26 @@
 (* Experiments with Z3.                                                      *)
 (* ========================================================================= *)
 
-#use "topfind";;
-#require "z3";;
+needs "z3base.ml";;
 
 (* ------------------------------------------------------------------------- *)
-(* Rename idents for compatibility with the jrh lexer:                       *)
-(*    Z3 -> Zzz
-      Z3.FuncDecl -> Zzz.Funcdecl
-      Z3.Solver.SATISFIABLE -> Zzz.Solver.satisfiable                        *)
+(* Additional HOL Light helper functions.                                    *)
 (* ------------------------------------------------------------------------- *)
 
-unset_jrh_lexer;;
-module Zzz = struct
-  include Z3
-  module Funcdecl = Z3.FuncDecl
-  module Solver = struct
-    include Z3.Solver
-    let satisfiable = Z3.Solver.SATISFIABLE
-  end
-end;;
-set_jrh_lexer;;
+let dest_quantifier tm =
+  if is_forall tm
+  then let v,b = dest_forall tm in v,b,true
+  else if is_exists tm
+  then let v,b = dest_exists tm in v,b,false
+  else failwith "dest_quantifier";;
+
+let is_quantifier = can dest_quantifier;;
+
+(* Test: *)
+assert (dest_quantifier `?n:num. b` = (`n:num`, `b:bool`, false));;
 
 (* ------------------------------------------------------------------------- *)
-(* Simple example of an OCaml function thath translate an HOL term that
-   is a boolean formula into a Z3 expresion.                                 *)
-(* ------------------------------------------------------------------------- *)
-
-let z3_of_term ctx =
-  let rec z3_of_term tm =
-    if is_neg tm then
-      Zzz.Boolean.mk_not ctx (z3_of_term (dest_neg tm))
-    else if is_conj tm then
-      let p,q = dest_conj tm
-      in Zzz.Boolean.mk_and ctx [z3_of_term p; z3_of_term q]
-    else if is_disj tm then
-      let p,q = dest_disj tm
-      in Zzz.Boolean.mk_or ctx [z3_of_term p; z3_of_term q]
-    else if is_imp tm then
-      let p,q = dest_imp tm
-      in Zzz.Boolean.mk_implies ctx (z3_of_term p) (z3_of_term q)
-    else if (is_var tm && type_of tm = `:bool`) then
-      let symbol,ty = dest_var tm
-      in Zzz.Boolean.mk_const_s ctx symbol
-    else
-      failwith "Parsing of HOL Light formula failed"
-  in
-  z3_of_term;;
-
-(* ------------------------------------------------------------------------- *)
-(* Translate a model into an assoc list.                                     *)
-(* ------------------------------------------------------------------------- *)
-
-let assoc_of_model m =
-  let ts = Zzz.Model.get_const_decls m
-  and f t =
-    let s = Zzz.Symbol.get_string (Zzz.Funcdecl.get_name t) in
-    let v = Zzz.Model.get_const_interp m t in
-    let v = match v with Some v -> v | None -> fail() in
-    let v = Zzz.Expr.to_string v in
-    s,v
-  in
-  mapfilter f ts;;
-
-(* ------------------------------------------------------------------------- *)
-(* Invocation of the Z# checker.                                             *)
-(* ------------------------------------------------------------------------- *)
-
-let solve ctx tms =
-  let l = map (z3_of_term ctx) tms in
-  let s = Zzz.Solver.mk_simple_solver ctx in
-  let ret = Zzz.Solver.check s l in
-  if ret <> Zzz.Solver.satisfiable then failwith "Unsatisfiable" else
-  match Zzz.Solver.get_model s with
-  | None -> failwith "Model not available"  (* Should not occur(?) *)
-  | Some m -> assoc_of_model m;;
-
-(* ------------------------------------------------------------------------- *)
-(* Example: checking the satisfiability of the boolean formula
-     ¬((p ∨ q → r) ∧ ¬(q ∨ r))
-   in Z3.                                                                    *)
-(* ------------------------------------------------------------------------- *)
-
-let ctx = Zzz.mk_context [];;
-solve ctx [`~((p \/ q ==> r) /\ ~(q \/ r))`];;
-
-(* ------------------------------------------------------------------------- *)
-(* Create enumerative sort for positions.                                    *)
-(* ------------------------------------------------------------------------- *)
-
-let pos = Zzz.Enumeration.mk_sort_s ctx "pos" ["P0"; "P1"; "P2"; "P3"; "P4"];;
-let [p0; p1; p2; p3; p4] = Zzz.Enumeration.get_const_decls pos;;
-
-(* ------------------------------------------------------------------------- *)
-
-let ctx = Zzz.mk_context [];;
-
-z3_of_term ctx tm;;
-
-(* ------------------------------------------------------------------------- *)
-(* ------------------------------------------------------------------------- *)
-
-let FORALL_NUM_INT_THM = prove
- (`!P. (!n:num. P n) <=> (!x:int. &0 <= x ==> P (num_of_int x))`,
-  GEN_TAC THEN EQ_TAC THENL [MESON_TAC[]; REPEAT STRIP_TAC] THEN
-  POP_ASSUM (MP_TAC o SPEC `int_of_num n`) THEN
-  REWRITE_TAC[INT_POS; NUM_OF_INT_OF_NUM]);;
-
-(* ------------------------------------------------------------------------- *)
+(* Constructors for quantifiers.                                             *)
 (* ------------------------------------------------------------------------- *)
 
 let z3_simple_mk_forall ctx vars body =
@@ -121,27 +34,28 @@ let z3_simple_mk_exists ctx vars body =
                 None [] [] None None in
   Zzz.Quantifier.expr_of_quantifier quant;;
 
-let dest_quantifier tm =
-  if is_forall tm
-  then let v,b = dest_forall tm in v,b,true
-  else if is_exists tm
-  then let v,b = dest_exists tm in v,b,false
-  else failwith "dest_quantifier";;
+(* ------------------------------------------------------------------------- *)
+(* Create enumerative sort for positions.                                    *)
+(* ------------------------------------------------------------------------- *)
 
-dest_quantifier `?n:num. b`;;
-
-let is_quantifier = can dest_quantifier;;
+let ctx = Zzz.mk_context [];;
 
 let sort_position = Zzz.Enumeration.mk_sort_s ctx "position"
                       ["P0"; "P1"; "P2"; "P3"; "P4"];;
+                      
 let [z3p0; z3p1; z3p2; z3p3; z3p4] =
   Zzz.Enumeration.get_consts sort_position;;
+
+(* ------------------------------------------------------------------------- *)
+(* Translates an HOL term into a Z3 expresion.
+   Handles a fragment barely sufficient for accepting goals generated from
+   the ANTS formalization.                                                   *)
+(* ------------------------------------------------------------------------- *)
 
 let z3_of_term =
   let num_ty = `:num`
   and position_ty = `:position`
   and zexpr = Zzz.Arithmetic.Integer.mk_numeral_i ctx 0 in
-  fun ctx ->
   let rec z3_of_term tm =
     if is_const tm then
       match name_of tm with
@@ -192,7 +106,7 @@ let z3_of_term =
                   else bexpr in
       if universal
       then z3_simple_mk_forall ctx [vexpr] bexpr
-      else z3_simple_mk_exists ctx [vexpr] bexpr       
+      else z3_simple_mk_exists ctx [vexpr] bexpr
     else if is_binary "<=" tm then
       let x,y = dest_binary "<=" tm in
       Zzz.Arithmetic.mk_ge ctx (z3_of_term y) (z3_of_term x)
@@ -210,10 +124,13 @@ let z3_of_term =
   in
   z3_of_term;;
 
-let z3show tm = Zzz.Expr.to_string (z3_of_term ctx tm);;
+(* ------------------------------------------------------------------------- *)
+(* Tests.                                                                    *)
+(* ------------------------------------------------------------------------- *)
 
-let thtm = tm |> REWRITE_CONV[MAX] |> concl |> rand;;
-time (solve ctx) [mk_neg thtm];;
+let ctx = Zzz.mk_context [];;
+
+let z3show tm = Zzz.Expr.to_string (z3_of_term ctx tm);;
 
 assert (z3show `b:num` = "b");;
 assert (z3show `n:num` = "n");;
@@ -227,8 +144,33 @@ assert (z3show `?b. b` = "(exists ((b Bool)) b)");;
 assert (z3show `!n:num. b` = "(forall ((n Int)) (=> (<= 0 n) b))");;
 assert (z3show `?n:num. b` = "(exists ((n Int)) (and (<= 0 n) b))");;
 
-z3show `b <=> c`;;
+(* ------------------------------------------------------------------------- *)
 
+g `!sys sys':3 system.
+     INVARIANT sys /\ sys' IN NEW_SYSTEM sys
+     ==> INVARIANT sys'`;;
+e (REWRITE_TAC[INVARIANT; INVARIANT_STI]);;
+e (REWRITE_TAC[IN_NEW_SYSTEM_ALT; NEW_ANT_ALT; NEW_STI_ALT]);;
+e (REWRITE_TAC[CART_EQ; DIMINDEX_3; FORALL_3; VECTOR_ADD_NUM_COMPONENT]);;
+e (REWRITE_TAC[FORALL_SYSTEM_THM; FORALL_VECTOR_3; FORALL_PAIR_THM]);;
+e (REWRITE_TAC[ANT; STI; VECTOR_3]);;
+e (REWRITE_TAC[DELTA_STI_COMPONENT_ALT; DIMINDEX_3; NSUM_3; VECTOR_3; PP]);;
+e (REWRITE_TAC[MAX]);;
+let (_,thtm) = top_goal();;
+
+let expr = z3_of_term ctx thtm;;
+
+let thtm = tm |> REWRITE_CONV[MAX] |> concl |> rand;;
+time (solve ctx) [mk_neg (z3_of_term ctx thtm)];;
+
+(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(*                        HIC SUNT LEONES                                    *)
+(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+
+
+z3show `b <=> c`;;
 solve ctx [`!b. b \/ ~b`];;
 solve ctx [`?b. b`];;
 solve ctx [`b:bool`];;
