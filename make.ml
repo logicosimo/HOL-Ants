@@ -4,9 +4,7 @@
 (* (c) Copyright, Marco Maggesi, Cosimo Perini Brogi 2023-2024.              *)
 (* ========================================================================= *)
 
-needs "Library/iter.ml";;
-needs "Multivariate/vectors.ml";;
-
+needs "setup.ml";;
 needs "setbind.ml";;
 needs "compute.ml";;
 needs "misc.ml";;

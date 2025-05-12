@@ -43,7 +43,7 @@ let VECTOR_EQ_4 = prove
 add_ants_thl [VECTOR_EQ_2; VECTOR_EQ_3; VECTOR_EQ_4];;
 
 (* ------------------------------------------------------------------------- *)
-(* Positions.                                                               ` *)
+(* Positions.                                                                *)
 (* ------------------------------------------------------------------------- *)
 
 let position_INDUCT,position_RECUR = define_type
@@ -233,8 +233,6 @@ let LISTCOLLECT_2 =
                 SETBIND_CLAUSES; o_THM; UNION_EMPTY] THENC
    NUM_REDUCE_CONV)
   `LISTCOLLECT 2 (u:num->A->bool)`;;
-
-search[`f (if b then x else y) = aa`];;
 
 let APP_COND = prove
  (`!f:A->B b x y. f (if b then x else y) = if b then f x else f y`,
