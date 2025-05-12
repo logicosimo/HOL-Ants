@@ -1,21 +1,4 @@
 (* ------------------------------------------------------------------------- *)
-(* Vectors.                                                                  *)
-(* ------------------------------------------------------------------------- *)
-
-let VECTOR_3_ETA = prove
- (`!v:A^3. vector[v$1; v$2; v$3] = v`,
-  REWRITE_TAC[CART_EQ; DIMINDEX_3; FORALL_3; VECTOR_3]);;
-
-let EXISTS_VECTOR_3 = prove
- (`(?v:A^3. P v) <=> (?x y z. P (vector[x; y; z]))`,
-  MESON_TAC[VECTOR_3_ETA; VECTOR_3]);;
-
-(* g `(?) (P:A^3->bool) <=> (?x y z. P (vector[x; y; z]))`;;
-e (TRANS_TAC EQ_TRANS `?v:A^3. P v`);;
-e (CONJ_TAC THENL [REWRITE_TAC[ETA_AX]; REWRITE_TAC[EXISTS_VECTOR_3]]);;
-let EXISTS_VECTOR_3_ALT = top_thm();; *)
-
-(* ------------------------------------------------------------------------- *)
 (* Vectors of nums.                                                          *)
 (* ------------------------------------------------------------------------- *)
 
@@ -41,6 +24,7 @@ let NSUM_3 = prove
   REWRITE_TAC[IN_INSERT; NOT_IN_EMPTY] THEN ARITH_TAC);;
 
 (* ------------------------------------------------------------------------- *)
+(* Lemmata for reducing a system description in FOL.                         *)
 (* ------------------------------------------------------------------------- *)
 
 let IN_NEW_SYSTEM_ALT = prove
@@ -51,11 +35,6 @@ let IN_NEW_SYSTEM_ALT = prove
          ==> ANT sys'$i IN NEW_ANT (STI sys) (ANT sys$i)`,
   REWRITE_TAC[FORALL_SYSTEM_THM; NEW_SYSTEM; ANT; STI] THEN
   SET_TAC[SYSTEM_INJECTIVITY]);;
-
-(* let NEW_STI_POS' = new_definition
-  `NEW_STI_POS' (sys:N system) (pos:num) =
-   STI sys$pos + nsum (1..dimindex(:N))
-                      (\i. if FST (ANT sys$i) = PP pos then 1 else 0)`;; *)
 
 let DELTA_STI = new_definition
   `DELTA_STI (ant:(position#bool)^N):num^3 =
@@ -106,12 +85,3 @@ let NEW_ANT_ALT = prove
  REWRITE_TAC[EXISTS_POSITION_THM; POSITION_DISTINCTNESS] THEN
  REWRITE_TAC[FORALL_POSITION_THM; POSITION_DISTINCTNESS] THEN
  MESON_TAC[]);;
-
-g `!sys sys':3 system.
-     INVARIANT sys /\ sys' IN NEW_SYSTEM sys
-     ==> INVARIANT sys'`;;
-e (REWRITE_TAC[INVARIANT; INVARIANT_STI; IN_NEW_SYSTEM_ALT; NEW_ANT_ALT; NEW_STI_ALT]);;
-e (REWRITE_TAC[CART_EQ; DIMINDEX_3; FORALL_3; VECTOR_ADD_NUM_COMPONENT]);;
-e (REWRITE_TAC[FORALL_SYSTEM_THM; ANT; STI; FORALL_VECTOR_3; VECTOR_3; FORALL_PAIR_THM]);;
-e (REWRITE_TAC[DELTA_STI_COMPONENT_ALT; DIMINDEX_3; NSUM_3; VECTOR_3; PP]);;
-let (_,tm) = top_goal();;
