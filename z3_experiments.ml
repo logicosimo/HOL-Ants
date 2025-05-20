@@ -5,36 +5,6 @@
 needs "z3base.ml";;
 
 (* ------------------------------------------------------------------------- *)
-(* Additional HOL Light helper functions.                                    *)
-(* ------------------------------------------------------------------------- *)
-
-let dest_quantifier tm =
-  if is_forall tm
-  then let v,b = dest_forall tm in v,b,true
-  else if is_exists tm
-  then let v,b = dest_exists tm in v,b,false
-  else failwith "dest_quantifier";;
-
-let is_quantifier = can dest_quantifier;;
-
-(* Test: *)
-assert (dest_quantifier `?n:num. b` = (`n:num`, `b:bool`, false));;
-
-(* ------------------------------------------------------------------------- *)
-(* Constructors for quantifiers.                                             *)
-(* ------------------------------------------------------------------------- *)
-
-let z3_simple_mk_forall ctx vars body =
-  let quant = Zzz.Quantifier.mk_forall_const ctx vars body
-                None [] [] None None in
-  Zzz.Quantifier.expr_of_quantifier quant;;
-
-let z3_simple_mk_exists ctx vars body =
-  let quant = Zzz.Quantifier.mk_exists_const ctx vars body
-                None [] [] None None in
-  Zzz.Quantifier.expr_of_quantifier quant;;
-
-(* ------------------------------------------------------------------------- *)
 (* Create enumerative sort for positions.                                    *)
 (* ------------------------------------------------------------------------- *)
 
@@ -128,9 +98,7 @@ let z3_of_term =
 (* Tests.                                                                    *)
 (* ------------------------------------------------------------------------- *)
 
-let ctx = Zzz.mk_context [];;
-
-let z3show tm = Zzz.Expr.to_string (z3_of_term ctx tm);;
+let z3show tm = Zzz.Expr.to_string (z3_of_term tm);;
 
 assert (z3show `b:num` = "b");;
 assert (z3show `n:num` = "n");;
@@ -157,11 +125,10 @@ e (REWRITE_TAC[ANT; STI; VECTOR_3]);;
 e (REWRITE_TAC[DELTA_STI_COMPONENT_ALT; DIMINDEX_3; NSUM_3; VECTOR_3; PP]);;
 e (REWRITE_TAC[MAX]);;
 let (_,thtm) = top_goal();;
-
-let expr = z3_of_term ctx thtm;;
-
-let thtm = tm |> REWRITE_CONV[MAX] |> concl |> rand;;
-time (solve ctx) [mk_neg (z3_of_term ctx thtm)];;
+let thtm = mk_neg thtm;;
+let expr = z3_of_term thtm;;
+Zzz.Expr.to_string expr;;
+time (solve ctx) [expr];;
 
 (* ------------------------------------------------------------------------- *)
 (* ------------------------------------------------------------------------- *)
@@ -169,6 +136,8 @@ time (solve ctx) [mk_neg (z3_of_term ctx thtm)];;
 (* ------------------------------------------------------------------------- *)
 (* ------------------------------------------------------------------------- *)
 
+let expr = Zzz.Boolean.mk_iff ctx (z3_of_term `T`) (z3_of_term `F`);;
+Zzz.Expr.to_string expr;;
 
 z3show `b <=> c`;;
 solve ctx [`!b. b \/ ~b`];;
