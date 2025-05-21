@@ -35,6 +35,8 @@ module Zzz = struct
   module Solver = struct
     include Z3.Solver
     let satisfiable = Z3.Solver.SATISFIABLE
+    let unsatisfiable = Z3.Solver.UNSATISFIABLE
+    let unknown = Z3.Solver.UNKNOWN
   end
 end;;
 set_jrh_lexer;;
@@ -61,10 +63,13 @@ let assoc_of_model m =
 let solve ctx exprs =
   let s = Zzz.Solver.mk_simple_solver ctx in
   let ret = Zzz.Solver.check s exprs in
-  if ret <> Zzz.Solver.satisfiable then failwith "Unsatisfiable" else
-  match Zzz.Solver.get_model s with
-  | None -> failwith "Model not available"  (* Should not occur(?) *)
-  | Some m -> assoc_of_model m;;
+  if ret = Zzz.Solver.unsatisfiable then failwith "Unsatisfiable" else
+  if ret = Zzz.Solver.unknown then
+    failwith ("Unknown: "^Zzz.Solver.get_reason_unknown s)
+  else
+    match Zzz.Solver.get_model s with
+    | None -> failwith "Model not available"  (* Should not occur(?) *)
+    | Some m -> assoc_of_model m;;
 
 (* ------------------------------------------------------------------------- *)
 (* Constructors for quantifiers.                                             *)

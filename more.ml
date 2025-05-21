@@ -17,8 +17,26 @@ let VECTOR_ADD_NUM_COMPONENT = prove
 (* Sums of nums.                                                             *)
 (* ------------------------------------------------------------------------- *)
 
+let NSUM_1 = prove
+ (`!f. nsum (1..1) f = f 1`,
+  GEN_TAC THEN CONV_TAC (ONCE_DEPTH_CONV NUMSEG_CONV) THEN
+  SIMP_TAC[NSUM_CLAUSES; FINITE_INSERT; FINITE_EMPTY] THEN
+  REWRITE_TAC[IN_INSERT; NOT_IN_EMPTY] THEN ARITH_TAC);;
+
+let NSUM_2 = prove
+ (`!f. nsum (1..2) f = f 1 + f 2`,
+  GEN_TAC THEN CONV_TAC (ONCE_DEPTH_CONV NUMSEG_CONV) THEN
+  SIMP_TAC[NSUM_CLAUSES; FINITE_INSERT; FINITE_EMPTY] THEN
+  REWRITE_TAC[IN_INSERT; NOT_IN_EMPTY] THEN ARITH_TAC);;
+
 let NSUM_3 = prove
  (`!f. nsum (1..3) f = f 1 + f 2 + f 3`,
+  GEN_TAC THEN CONV_TAC (ONCE_DEPTH_CONV NUMSEG_CONV) THEN
+  SIMP_TAC[NSUM_CLAUSES; FINITE_INSERT; FINITE_EMPTY] THEN
+  REWRITE_TAC[IN_INSERT; NOT_IN_EMPTY] THEN ARITH_TAC);;
+
+let NSUM_4 = prove
+ (`!f. nsum (1..4) f = f 1 + f 2 + f 3 + f 4`,
   GEN_TAC THEN CONV_TAC (ONCE_DEPTH_CONV NUMSEG_CONV) THEN
   SIMP_TAC[NSUM_CLAUSES; FINITE_INSERT; FINITE_EMPTY] THEN
   REWRITE_TAC[IN_INSERT; NOT_IN_EMPTY] THEN ARITH_TAC);;
