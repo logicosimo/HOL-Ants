@@ -156,6 +156,7 @@ let sexp_mk_nonneg =
 
 let sexp_of_forall tm =
   let vl,btm = strip_forall tm in
+  if vl = [] then failwith "sexp_of_forall" else
   let vsexps = sexp_mk_list (map mk_quant_var vl) in
   let bounds = mapfilter sexp_mk_nonneg vl in
   let bdy = sexp_of_term btm in
@@ -165,6 +166,7 @@ let sexp_of_forall tm =
 
 let sexp_of_exists tm =
   let vl,btm = strip_exists tm in
+  if vl = [] then failwith "sexp_of_exists" else
   let vsexps = sexp_mk_list (map mk_quant_var vl) in
   let bounds = mapfilter sexp_mk_nonneg vl in
   let bdy = sexp_of_term btm in
@@ -194,6 +196,15 @@ let sexp_of_le tm =
 let sexp_of_gt tm =
   let x,y = dest_binary ">" tm in
   sexp_mk_fn ">" [sexp_of_term x; sexp_of_term y];;
+
+let sexp_mk_mul l =
+  match l with
+  | [] -> sexp_mk_atom "1"
+  | [e] -> e
+  | l -> sexp_mk_fn "*" l;;
+
+let sexp_mk_sub (a, b) =
+  sexp_mk_fn "-" [a; b];;
 
 (* ------------------------------------------------------------------------- *)
 (* Default net for sexp_of_term.                                             *)
@@ -249,32 +260,8 @@ assert (strsexp_of_term `10 + x <= y` = "(<=(+ 10 x)y)");;
 assert (strsexp_of_term `5 > y+1` = "(> 5(+ y 1))");;
 
 (* ------------------------------------------------------------------------- *)
-(* Further procedures for the invocation of the Z3 checker.                  *)
-(* ------------------------------------------------------------------------- *)
-
-(* let z3_prove tml tm =
-  let ptm = itlist (curry mk_conj) tml (mk_neg tm) in
-  let ptm = list_mk_forall (frees ptm,ptm) in
-  let s = Zzz.Solver.mk_simple_solver in
-  let ret = Zzz.Solver.check s [sexp_of_term ptm] in
-  if ret = Zzz.Solver.satisfiable then  false else
-  if ret = Zzz.Solver.unsatisfiable then true else
-  if ret = Zzz.Solver.unknown
-  then failwith ("z3_prove: UNKNOWN: "^Zzz.Solver.get_reason_unknown s)
-  else failwith "z3_prove: Anomaly";; *)
-
-(* ------------------------------------------------------------------------- *)
 (* Examples.                                                                 *)
 (* ------------------------------------------------------------------------- *)
-
-let ptm =
-  `((~(x' > y') \/ ~(x' > z')) \/ ~(x' + 1 > y') \/ ~(x' + 1 > z')) /\
-   z' <= x' + 1
-   ==> ?x' y' x'' y''.
-           (((x' = x /\ y' = y /\ z' = z) /\ y <= x) /\
-            x'' = x' + 1 /\
-            y'' = y' /\
-            z'' = z')`;;
 
 let ptm =
   `((~(a > b) \/ ~(a > c)) \/ ~(a + 1 > b) \/ ~(a + 1 > c)) /\
@@ -285,9 +272,89 @@ let ptm =
             b_ = b /\
             c_ = c)`;;
 
-let mysexp =
-  let xtm = list_mk_forall (frees ptm,ptm) in
-  let xtm = mk_neg xtm in
-  sexp_mk_fn "assert" [sexp_of_term xtm];;
+let ptm =
+  `((~(x' > y') \/ ~(x' > z')) \/ ~(x' + 1 > y') \/ ~(x' + 1 > z')) /\
+   z' <= x' + 1
+   ==> ?x' y' x'' y''.
+           (((x' = x /\ y' = y /\ z' = z) /\ y <= x) /\
+            x'' = x' + 1 /\
+            y'' = y' /\
+            z'' = z')`;;
 
-Format.fprintf Format.std_formatter "%a@." sexp_pp mysexp;;
+g `!sys sys':1 system.
+     INVARIANT sys /\ sys' IN NEW_SYSTEM sys
+     ==> INVARIANT sys'`;;
+e (REWRITE_TAC[INVARIANT; INVARIANT_STI]);;
+e (REWRITE_TAC[IN_NEW_SYSTEM_ALT; NEW_ANT_ALT; NEW_STI_ALT]);;
+e (REWRITE_TAC[CART_EQ; DIMINDEX_1; FORALL_1; DIMINDEX_3; FORALL_3; VECTOR_ADD_NUM_COMPONENT]);;
+e (REWRITE_TAC[FORALL_SYSTEM_THM; FORALL_VECTOR_3; FORALL_VECTOR_1; FORALL_PAIR_THM]);;
+e (REWRITE_TAC[ANT; STI; VECTOR_3; VECTOR_1]);;
+e (REWRITE_TAC[DELTA_STI_COMPONENT_ALT; DIMINDEX_3; DIMINDEX_1; NSUM_1; VECTOR_3; VECTOR_1; PP]);;
+e (REWRITE_TAC[MAX]);;
+let _,pth = top_goal();;
+
+g `!sys sys':2 system.
+     INVARIANT sys /\ sys' IN NEW_SYSTEM sys
+     ==> INVARIANT sys'`;;
+e (REWRITE_TAC[INVARIANT; INVARIANT_STI]);;
+e (REWRITE_TAC[IN_NEW_SYSTEM_ALT; NEW_ANT_ALT; NEW_STI_ALT]);;
+e (REWRITE_TAC[CART_EQ; DIMINDEX_2; FORALL_2; DIMINDEX_3; FORALL_3; VECTOR_ADD_NUM_COMPONENT]);;
+e (REWRITE_TAC[FORALL_SYSTEM_THM; FORALL_VECTOR_3; FORALL_VECTOR_2; FORALL_PAIR_THM]);;
+e (REWRITE_TAC[ANT; STI; VECTOR_3; VECTOR_2]);;
+e (REWRITE_TAC[DELTA_STI_COMPONENT_ALT; DIMINDEX_3; DIMINDEX_2; NSUM_2; VECTOR_3; VECTOR_2; PP]);;
+e (REWRITE_TAC[MAX]);;
+let _,pth = top_goal();;
+
+g `!sys sys':3 system.
+     INVARIANT sys /\ sys' IN NEW_SYSTEM sys
+     ==> INVARIANT sys'`;;
+e (REWRITE_TAC[INVARIANT; INVARIANT_STI]);;
+e (REWRITE_TAC[IN_NEW_SYSTEM_ALT; NEW_ANT_ALT; NEW_STI_ALT]);;
+e (REWRITE_TAC[CART_EQ; DIMINDEX_3; FORALL_3; DIMINDEX_3; FORALL_3; VECTOR_ADD_NUM_COMPONENT]);;
+e (REWRITE_TAC[FORALL_SYSTEM_THM; FORALL_VECTOR_3; FORALL_VECTOR_3; FORALL_PAIR_THM]);;
+e (REWRITE_TAC[ANT; STI; VECTOR_3; VECTOR_3]);;
+e (REWRITE_TAC[DELTA_STI_COMPONENT_ALT; DIMINDEX_3; DIMINDEX_3; NSUM_3; VECTOR_3; VECTOR_3; PP]);;
+e (REWRITE_TAC[MAX]);;
+let _,pth = top_goal();;
+
+g `!sys sys':4 system.
+     INVARIANT sys /\ sys' IN NEW_SYSTEM sys
+     ==> INVARIANT sys'`;;
+e (REWRITE_TAC[INVARIANT; INVARIANT_STI]);;
+e (REWRITE_TAC[IN_NEW_SYSTEM_ALT; NEW_ANT_ALT; NEW_STI_ALT]);;
+e (REWRITE_TAC[CART_EQ; DIMINDEX_4; FORALL_4; DIMINDEX_3; FORALL_3; VECTOR_ADD_NUM_COMPONENT]);;
+e (REWRITE_TAC[FORALL_SYSTEM_THM; FORALL_VECTOR_3; FORALL_VECTOR_4; FORALL_PAIR_THM]);;
+e (REWRITE_TAC[ANT; STI; VECTOR_3; VECTOR_4]);;
+e (REWRITE_TAC[DELTA_STI_COMPONENT_ALT; DIMINDEX_3; DIMINDEX_4; NSUM_4; VECTOR_3; VECTOR_4; PP]);;
+e (REWRITE_TAC[MAX]);;
+let _,pth = top_goal();;
+
+let xtm = list_mk_forall (frees ptm,ptm) in
+let xtm = mk_neg xtm in
+let expr = sexp_mk_fn "assert" [sexp_of_term xtm] in
+Format.fprintf Format.std_formatter "%a@." sexp_pp expr;;
+
+
+let sim4 =
+  `System (vector[(a0,d0); (a1,d1); (a2,d2); (a3,d3)])
+          (vector[s1; s2; s3]) : 4 system IN
+   ITER 5 (SETBIND NEW_SYSTEM)
+          {System (vector[(P0,T); (P1,F); (P2,F); (P4,F)])
+                  (vector[0; 0; 0])}`;;
+
+sim4 |> REWRITE_CONV[TOP_SWEEP_CONV num_CONV `5`; ITER; IN_SETBIND;
+                     IN_NEW_SYSTEM_ALT; DIMINDEX_4; FORALL_4;
+                     ANT; STI;
+                     NEW_ANT_ALT;
+                     NEW_STI_ALT;
+                     DELTA_STI_COMPONENT_ALT;
+                     VECTOR_ADD_NUM_COMPONENT;
+                     EXISTS_SYSTEM_THM;
+                     EXISTS_PAIR_THM;
+                     EXISTS_VECTOR_4; VECTOR_4;
+                     EXISTS_VECTOR_3; VECTOR_3; FORALL_3;
+                     NSUM_4; PP;
+                     CART_EQ; DIMINDEX_3; VECTOR_3;
+                     IN_INSERT; NOT_IN_EMPTY];;
+
+concl it |> variables |> map dest_var;;                     
