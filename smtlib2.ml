@@ -35,6 +35,17 @@ let sexp_mk_atom (s : string) : Sexplib.Sexp.t =
 let sexp_mk_fn (s : string) (l : Sexplib.Sexp.t list) : Sexplib.Sexp.t =
   sexp_mk_list (sexp_mk_atom s :: l);;
 
+let pp_sexp fmt sexp =
+  Format.fprintf fmt "%a@." Sexplib.Sexp.pp_hum sexp;;
+
+let print_sexp sexp = pp_sexp Format.std_formatter;;
+
+let write_sexps_to_file filename sexps =
+  let oc = open_out filename in
+  let fmt = Format.formatter_of_out_channel oc in
+  do_list (pp_sexp fmt) sexps;
+  close_out oc;;
+
 (* ------------------------------------------------------------------------- *)
 (* Exam[le.                                                                ] *)
 (* ------------------------------------------------------------------------- *)
@@ -260,7 +271,7 @@ assert (strsexp_of_term `10 + x <= y` = "(<=(+ 10 x)y)");;
 assert (strsexp_of_term `5 > y+1` = "(> 5(+ y 1))");;
 
 (* ------------------------------------------------------------------------- *)
-(* Examples.                                                                 *)
+(* Examples of proof.                                                        *)
 (* ------------------------------------------------------------------------- *)
 
 let ptm =
@@ -332,8 +343,11 @@ let _,pth = top_goal();;
 let xtm = list_mk_forall (frees ptm,ptm) in
 let xtm = mk_neg xtm in
 let expr = sexp_mk_fn "assert" [sexp_of_term xtm] in
-Format.fprintf Format.std_formatter "%a@." sexp_pp expr;;
+print_sexp expr;;
 
+(* ------------------------------------------------------------------------- *)
+(* Examples of simulations.                                                  *)
+(* ------------------------------------------------------------------------- *)
 
 let sim4 =
   `System (vector[(a0,d0); (a1,d1); (a2,d2); (a3,d3)])
@@ -342,19 +356,81 @@ let sim4 =
           {System (vector[(P0,T); (P1,F); (P2,F); (P4,F)])
                   (vector[0; 0; 0])}`;;
 
-sim4 |> REWRITE_CONV[TOP_SWEEP_CONV num_CONV `5`; ITER; IN_SETBIND;
-                     IN_NEW_SYSTEM_ALT; DIMINDEX_4; FORALL_4;
-                     ANT; STI;
-                     NEW_ANT_ALT;
-                     NEW_STI_ALT;
-                     DELTA_STI_COMPONENT_ALT;
-                     VECTOR_ADD_NUM_COMPONENT;
-                     EXISTS_SYSTEM_THM;
-                     EXISTS_PAIR_THM;
-                     EXISTS_VECTOR_4; VECTOR_4;
-                     EXISTS_VECTOR_3; VECTOR_3; FORALL_3;
-                     NSUM_4; PP;
-                     CART_EQ; DIMINDEX_3; VECTOR_3;
-                     IN_INSERT; NOT_IN_EMPTY];;
+(* let CART_EQ_PTHM = prove
+ (`dimindex(:N) = N <=>
+   `) *)
 
-concl it |> variables |> map dest_var;;                     
+let ptm = sim4
+  |> REWRITE_CONV
+       [TOP_SWEEP_CONV num_CONV `5`; ITER; IN_SETBIND;
+        IN_NEW_SYSTEM_ALT; DIMINDEX_4; FORALL_4;
+        ANT; STI;
+        NEW_ANT_ALT;
+        NEW_STI_ALT;
+        SYSTEM_INJECTIVITY;
+        PAIR_EQ;
+        DELTA_STI_COMPONENT_ALT;
+        VECTOR_ADD_NUM_COMPONENT;
+        EXISTS_SYSTEM_THM;
+        EXISTS_PAIR_THM;
+        EXISTS_VECTOR_4; VECTOR_4;
+        EXISTS_VECTOR_3; VECTOR_3; FORALL_3;
+        NSUM_4; PP;
+        CART_EQ; DIMINDEX_3; VECTOR_3;
+        IN_INSERT; NOT_IN_EMPTY]
+  |> concl |> rhs;;
+
+let EXISTS_STI_THM = prove
+ (`(?v:num^3. P v) <=> (?s1 s2 s3. P (vector [s1; s2; s3]))`,
+  MATCH_ACCEPT_TAC EXISTS_VECTOR_3);;
+
+let sexp_mk_declare_datatype sname cnames =
+  let constrs = map (fun v -> sexp_mk_list [sexp_mk_atom v]) cnames in
+  sexp_mk_fn "declare-datatype" [sexp_mk_atom sname; sexp_mk_list constrs];;
+
+let sexp_mk_declare_const v =
+  let nm,ty = dest_var v in
+  sexp_mk_fn "declare-const" [sexp_mk_atom nm; sexp_of_type ty];;
+
+assert (string_of_sexp(sexp_mk_declare_const `x:num`) =
+        "(declare-const x Int)");;
+
+let sexp_mk_assert_nonneg v =
+  sexp_mk_fn "assert" [sexp_mk_nonneg v];;
+
+(*
+let () =
+  report ";; Datatype for positions:";
+  report "(declare-datatype Position ( (P0) (P1) (P2) (P3) (P4) ))";
+  let vl = variables ptm in
+  report "\n;; Constant declaration:";
+  do_list (print_sexp o sexp_mk_declare_const) vl;
+  report "\n;; Boundary assertions:";
+  do_list print_sexp (mapfilter sexp_mk_assert_nonneg vl);
+  report "\n;; Main assertion:";
+  print_sexp (sexp_mk_fn "assert" [sexp_of_term ptm]);
+  report "\n;; Check satifiability:";
+  print_sexp (sexp_mk_fn "check-sat" []);
+  report "\n;; Get values:";
+  let sexp_vl = sexp_mk_list(map sexp_of_term (sort (<) vl)) in
+  print_sexp (sexp_mk_fn "get-value" [sexp_vl]);;
+*)
+
+let () =
+  let datatype_sexp = sexp_mk_declare_datatype "Position"
+                        ["P0"; "P1"; "P2"; "P3"; "P4"] in
+  let vl = sort (<) (variables ptm) in
+  let decl_sexps = map sexp_mk_declare_const vl in
+  let bound_sexps = mapfilter sexp_mk_assert_nonneg vl in
+  let assert_sexp = sexp_mk_fn "assert" [sexp_of_term ptm] in
+  let check_sexp = sexp_mk_fn "check-sat" [] in
+  let get_sexp = sexp_mk_fn "get-value"
+                   [sexp_mk_list(map sexp_of_term vl)] in
+  let sexps = [datatype_sexp] @
+              decl_sexps @
+              bound_sexps @
+              [assert_sexp; check_sexp; get_sexp] in
+  let path = "/workspaces/hol-light-devcontainer/code/HOL-Ants" in
+  let fname = "sim1.smt2" in
+  let pathname = path^"/"^fname in
+  write_sexps_to_file pathname sexps;;
