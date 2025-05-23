@@ -67,6 +67,17 @@ let PP = define
    PP 3 = P3 /\
    PP 4 = P4`;;
 
+let PP_INJ,PP_SURJ = (CONJ_PAIR o prove)
+ (`(!i j. i <= 4 /\ j <= 4 ==> (PP i = PP j <=> i = j)) /\
+   (!p. ?i. i <= 4 /\ p = PP i)`,
+  REWRITE_TAC[(TOP_SWEEP_CONV num_CONV THENC REWRITE_CONV[LE] THENC
+               DEPTH_CONV NUM_SUC_CONV) `p <= 4`] THEN
+  CONJ_TAC THENL
+  [REPEAT STRIP_TAC THEN
+   REPEAT (FIRST_X_ASSUM SUBST_VAR_TAC THEN
+   REWRITE_TAC[PP; POSITION_DISTINCTNESS]) THEN NUM_REDUCE_TAC;
+   REWRITE_TAC[FORALL_POSITION_THM] THEN MESON_TAC[PP]]);;
+
 add_ants_thl [POSITION_DISTINCTNESS; PP];;
 
 (* ------------------------------------------------------------------------- *)
@@ -271,7 +282,7 @@ let NEW_SYSTEM_2 =
 
 add_ants_thl [NEW_SYSTEM_2];;
 
-(* 
+(*
 let tm =
   time (run_conv (TOP_SWEEP_CONV num_CONV THENC
                   REWRITE_CONV[ITER] THENC
@@ -317,7 +328,7 @@ let NEW_SYSTEM_3 =
 
 add_ants_thl [NEW_SYSTEM_3];;
 
-(* 
+(*
 let tm =
   time (run_conv (TOP_SWEEP_CONV num_CONV THENC
                   REWRITE_CONV[ITER] THENC
@@ -342,7 +353,7 @@ val tm : term =
     System (vector [P3,F; P4,T; P4,T]) (vector [1; 10; 9])}`
 *)
 
-(* 
+(*
 let tm =
   time (run_conv (TOP_SWEEP_CONV num_CONV THENC
                   REWRITE_CONV[ITER] THENC
@@ -395,7 +406,7 @@ let NEW_SYSTEM_4 =
 
 add_ants_thl [NEW_SYSTEM_4];;
 
-(* 
+(*
 let tm =
   time (run_conv (TOP_SWEEP_CONV num_CONV THENC
                   REWRITE_CONV[ITER] THENC
