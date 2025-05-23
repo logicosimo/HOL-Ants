@@ -78,6 +78,14 @@ let PP_INJ,PP_SURJ = (CONJ_PAIR o prove)
    REWRITE_TAC[PP; POSITION_DISTINCTNESS]) THEN NUM_REDUCE_TAC;
    REWRITE_TAC[FORALL_POSITION_THM] THEN MESON_TAC[PP]]);;
 
+let FORALL_POSITION_NUM_THM = prove
+ (`!P. (!p:position. P p) <=> (!p. p <= 4 ==> P (PP p))`,
+  MESON_TAC[PP_SURJ]);;
+
+let EXISTS_POSITION_NUM_THM = prove
+ (`!P. (?p:position. P p) <=> (?p. p <= 4 /\ P (PP p))`,
+  MESON_TAC[PP_SURJ]);;
+
 add_ants_thl [POSITION_DISTINCTNESS; PP];;
 
 (* ------------------------------------------------------------------------- *)
