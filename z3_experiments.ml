@@ -139,7 +139,8 @@ e (REWRITE_TAC[CART_EQ; DIMINDEX_1; FORALL_1; DIMINDEX_3; FORALL_3; VECTOR_ADD_N
 e (REWRITE_TAC[FORALL_SYSTEM_THM; FORALL_VECTOR_3; FORALL_VECTOR_1; FORALL_PAIR_THM]);;
 e (REWRITE_TAC[ANT; STI; VECTOR_3; VECTOR_1]);;
 e (REWRITE_TAC[DELTA_STI_COMPONENT_ALT; DIMINDEX_3; DIMINDEX_1; NSUM_1; VECTOR_3; VECTOR_1; PP]);;
-e (REWRITE_TAC[MAX_GT]);;
+(* e (REWRITE_TAC[MAX_GT]);; *)
+e (REWRITE_TAC[MAX]);;
 (* e (CONV_TAC (NNFC_CONV THENC PRENEX_CONV THENC CNF_CONV));; *)
 
 e (GEN_REWRITE_TAC I [FORALL_POSITION_THM] THEN REWRITE_TAC[POSITION_DISTINCTNESS; ADD_0]);;
@@ -183,11 +184,13 @@ g `?a b. (a = b \/ a = b + 1) /\ a = b + 1`;;
 (* g `~(!a b. b = a /\ a > 0)`;; *)
 g `x' = 3 ==> ?x':num. x' = y`;;
 let _,ptm = top_goal();;
+
+(* Check di ptm. *)
 let ptm = list_mk_forall (frees ptm,ptm);;
 let ptm = mk_neg ptm;;
 let s = Zzz.Solver.mk_simple_solver ctx;;
-let expr = z3_of_term ptm;;
-(* let expr = z3_of_term ctx ptm;; *)
+(* let expr = z3_of_term ptm;; *)
+let expr = z3_of_term ctx ptm;;
 report (Zzz.Expr.to_string expr);;
 report (Zzz.Expr.to_string (Zzz.Expr.simplify expr None));;;;
 Zzz.Solver.check s [expr];;
@@ -287,6 +290,7 @@ e (REWRITE_TAC[MAX]);;
 
 e (REWRITE_TAC[FORALL_BOOL_THM; FORALL_POSITION_THM; ARITH]);;
 
+let (_,ptm) = top_goal();;
 let (_,thtm) = top_goal();;
 let thtm = mk_neg thtm;;
 (* let expr = z3_of_term ctx thtm;; *)
