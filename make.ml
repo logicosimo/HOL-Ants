@@ -4,6 +4,8 @@
 (* (c) Copyright, Marco Maggesi, Cosimo Perini Brogi 2023-2024.              *)
 (* ========================================================================= *)
 
+needs "BinTreeVec/make.ml";;
+
 needs "setup.ml";;
 needs "setbind.ml";;
 needs "compute.ml";;
