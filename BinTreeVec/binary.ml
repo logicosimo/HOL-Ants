@@ -189,6 +189,30 @@ let NUMSEG_LT_BINARY = prove
   REPEAT CONJ_TAC THEN TRY ARITH_TAC THEN MATCH_MP_TAC FORALL_BINARY_THM THEN
   REWRITE_TAC[NUM_LT_BINARY; NUM_EQ_BINARY; UNWIND_THM1]);;
 
+let NUMSEG_LT_BINARY_ALT = prove
+ (`{i | i < 0} = {} /\
+   {i | i < 2 * n} = IMAGE (\i. 2 * i) {i | i < n} UNION
+                     IMAGE (\i. 2 * i + 1) {i | i < n} /\
+   {i | i < 2 * n + 1} = IMAGE (\i. 2 * i) {i | i <= n} UNION
+                         IMAGE (\i. 2 * i + 1) {i | i < n}`,
+  REWRITE_TAC[GSYM SUBSET_ANTISYM_EQ; SUBSET; FORALL_IN_GSPEC;
+    FORALL_IN_IMAGE; FORALL_IN_INSERT; FORALL_IN_UNION] THEN
+  REWRITE_TAC[NOT_IN_EMPTY; IN_INSERT; IN_UNION; IN_ELIM_THM; IN_IMAGE] THEN
+  REPEAT CONJ_TAC THEN TRY ARITH_TAC THEN MATCH_MP_TAC FORALL_BINARY_THM THEN
+  REWRITE_TAC[NUM_EQ_BINARY; UNWIND_THM1] THEN ARITH_TAC);;
+
+let NUMSEG_LE_BINARY_ALT = prove
+ (`{i | i <= 0} = {0} /\
+   {i | i <= 2 * n} = IMAGE (\i. 2 * i) {i | i <= n} UNION
+                      IMAGE (\i. 2 * i + 1) {i | i < n} /\
+   {i | i <= 2 * n + 1} = IMAGE (\i. 2 * i) {i | i <= n} UNION
+                          IMAGE (\i. 2 * i + 1) {i | i <= n}`,
+  REWRITE_TAC[GSYM SUBSET_ANTISYM_EQ; SUBSET; FORALL_IN_GSPEC;
+    FORALL_IN_IMAGE; FORALL_IN_INSERT; FORALL_IN_UNION] THEN
+  REWRITE_TAC[NOT_IN_EMPTY; IN_INSERT; IN_UNION; IN_ELIM_THM; IN_IMAGE] THEN
+  REPEAT CONJ_TAC THEN TRY ARITH_TAC THEN MATCH_MP_TAC FORALL_BINARY_THM THEN
+  REWRITE_TAC[NUM_EQ_BINARY; UNWIND_THM1] THEN ARITH_TAC);;
+
 (* ------------------------------------------------------------------------- *)
 (* Iteration over numeric segments.                                          *)
 (* ------------------------------------------------------------------------- *)
