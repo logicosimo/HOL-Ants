@@ -25,6 +25,33 @@ let NSUM_9 = NSUM_NUMSEG_CONV `nsum (1..9) f`;;
 let NSUM_10 = NSUM_NUMSEG_CONV `nsum (1..10) f`;;
 
 (* ------------------------------------------------------------------------- *)
+(* Heterogeneous tools.                                                      *)
+(* ------------------------------------------------------------------------- *)
+
+let mk_forall_position =
+  let position_ty = `:position` in
+  fun tm -> let fvars = frees tm in
+            let vars = filter ((=) position_ty o type_of) fvars in
+            list_mk_forall(vars,tm);;
+
+let CONJ_LIST (thl : thm list) : thm =
+  try end_itlist CONJ thl with Failure _ -> failwith "CONJ_LIST";;
+
+let LIST_MP_TAC (thl : thm list) : tactic =
+  try MP_TAC (CONJ_LIST thl) with Failure _ -> ALL_TAC;;
+
+let UNDISCH_ALL_TAC : tactic =
+  POP_ASSUM_LIST (LIST_MP_TAC o rev);;
+
+let FORALL_ANT_THM = prove
+ (`!P. (!x. P x) <=> (!pos:position dir:bool. P (pos,dir))`,
+  MATCH_ACCEPT_TAC FORALL_PAIR_THM);;
+
+let EXISTS_ANT_THM = prove
+ (`!P. (?x. P x) <=> (?pos:position dir:bool. P (pos,dir))`,
+  MATCH_ACCEPT_TAC EXISTS_PAIR_THM);;
+
+(* ------------------------------------------------------------------------- *)
 (* System of 2 ants.                                                         *)
 (* ------------------------------------------------------------------------- *)
 
@@ -124,7 +151,7 @@ let IN_NEW_SYSTEM_10 =
 (* Proof of the permanence of the invariant of the stigmergy.                *)
 (* ------------------------------------------------------------------------- *)
 
-(* Statement for 2 ants. *)
+(* Statement for 2 ants (uses the position datatype). *)
 g `!sys sys' sys'' sys''':2 system.
       sys' IN NEW_SYSTEM sys /\
       sys'' IN NEW_SYSTEM sys' /\
@@ -135,30 +162,31 @@ g `!sys sys' sys'' sys''':2 system.
       ==> INVARIANT_STI (STI sys''')`;;
 e (REWRITE_TAC[INVARIANT_STI]);;
 e (GEN_REWRITE_TAC I [FORALL_SYSTEM_THM]);;
-e (REWRITE_TAC[FORALL_PAIR_THM; FORALL_VECTOR_THM;
-               ANT; STI; FORALL_POSITION_NUM_THM]);;
-e (INTRO_TAC "![a0]; a0; ![d0] [a1]; a1; ![d1] [s1] [s2] [s3]");;
+e (REWRITE_TAC[FORALL_ANT_THM; FORALL_VECTOR_THM; ANT; STI]);;
+e (INTRO_TAC "![a0] [d0] [a1] [d1] [s1] [s2] [s3]");;
 e (GEN_REWRITE_TAC I [FORALL_SYSTEM_THM]);;
-e (REWRITE_TAC[FORALL_PAIR_THM; FORALL_VECTOR_THM;
-               ANT; STI; FORALL_POSITION_NUM_THM]);;
-e (INTRO_TAC "![a0']; a0'; ![d0'] [a1']; a1'; ![d1'] [s1'] [s2'] [s3']");;
+e (REWRITE_TAC[FORALL_ANT_THM; FORALL_VECTOR_THM; ANT; STI]);;
+e (INTRO_TAC "![a0'] [d0'] [a1'] [d1'] [s1'] [s2'] [s3']");;
 e (GEN_REWRITE_TAC I [FORALL_SYSTEM_THM]);;
-e (REWRITE_TAC[FORALL_PAIR_THM; FORALL_VECTOR_THM;
-               ANT; STI; FORALL_POSITION_NUM_THM]);;
-e (INTRO_TAC "![a0'']; a0''; ![d0''] [a1'']; a1''; ![d1'']
-              [s1''] [s2''] [s3'']");;
+e (REWRITE_TAC[FORALL_ANT_THM; FORALL_VECTOR_THM; ANT; STI]);;
+e (INTRO_TAC "![a0''] [d0''] [a1''] [d1''] [s1''] [s2''] [s3'']");;
 e (GEN_REWRITE_TAC I [FORALL_SYSTEM_THM]);;
-e (REWRITE_TAC[FORALL_PAIR_THM; FORALL_VECTOR_THM;
-               ANT; STI; FORALL_POSITION_NUM_THM]);;
-e (INTRO_TAC "![a0''']; a'''; ![d0'''] [a1''']; a1'''; ![d1''']
-              [s1'''] [s2'''] [s3''']");;
+e (REWRITE_TAC[FORALL_ANT_THM; FORALL_VECTOR_THM; ANT; STI]);;
+e (INTRO_TAC "![a0'''] [d0'''] [a1'''] [d1'''] [s1'''] [s2'''] [s3''']");;
 e VECTOR_REDUCE_TAC;;
-e (REWRITE_TAC[IN_NEW_SYSTEM_2; MAX; GSYM PP;
-     MESON [] `(if a then PP b else PP c) = PP (if a then b else c)`]);;
-e (POP_ASSUM_LIST (MP_TAC o end_itlist CONJ));;
+e UNDISCH_ALL_TAC;;
+e (REWRITE_TAC[IN_NEW_SYSTEM_2; MAX; PP]);;
 let _,invariant_tm_2 = top_goal();;
 
-(* Statement for 5 ants. *)
+(* Statement for 2 ants (do not uses the position datatype). *)
+g (mk_forall_position invariant_tm_2);;
+e (REWRITE_TAC[FORALL_POSITION_NUM_THM; GSYM PP]);;
+e (REWRITE_TAC[MESON []
+     `(if a then PP b else PP c) = PP (if a then b else c)`]);;
+e (REPEAT STRIP_TAC THEN UNDISCH_ALL_TAC);;
+let _,invariant_nopos_tm_2 = top_goal();;
+
+(* Statement for 5 ants (uses the position datatype). *)
 g `!sys sys' sys'' sys''':5 system.
       sys' IN NEW_SYSTEM sys /\
       sys'' IN NEW_SYSTEM sys' /\
@@ -168,17 +196,23 @@ g `!sys sys' sys'' sys''':5 system.
       INVARIANT_STI (STI sys'')
       ==> INVARIANT_STI (STI sys''')`;;
 e (REWRITE_TAC[INVARIANT_STI]);;
-e (REWRITE_TAC[FORALL_SYSTEM_THM; FORALL_PAIR_THM; FORALL_VECTOR_THM;
-               ANT; STI; FORALL_POSITION_NUM_THM]);;
-e (REPEAT (GEN_TAC ORELSE DISCH_TAC));;
-e (POP_ASSUM MP_TAC);;
+e (REWRITE_TAC[FORALL_SYSTEM_THM; ANT; STI;
+               FORALL_ANT_THM; FORALL_VECTOR_THM]);;
+e (REPEAT GEN_TAC);;
 e VECTOR_REDUCE_TAC;;
-e (REWRITE_TAC[IN_NEW_SYSTEM_5; MAX; GSYM PP;
-     MESON [] `(if a then PP b else PP c) = PP (if a then b else c)`]);;
-e (POP_ASSUM_LIST (MP_TAC o end_itlist CONJ));;
+e (REWRITE_TAC[IN_NEW_SYSTEM_5; MAX; PP]);;
+e (REPEAT STRIP_TAC THEN UNDISCH_ALL_TAC);;
 let _,invariant_tm_5 = top_goal();;
 
-(* Statement for 10 ants. *)
+(* Statement for 5 ants (do not uses the position datatype). *)
+g (mk_forall_position invariant_tm_5);;
+e (REWRITE_TAC[FORALL_POSITION_NUM_THM; GSYM PP]);;
+e (REWRITE_TAC[MESON []
+     `(if a then PP b else PP c) = PP (if a then b else c)`]);;
+e (REPEAT STRIP_TAC THEN UNDISCH_ALL_TAC);;
+let _,invariant_nopos_tm_5 = top_goal();;
+
+(* Statement for 10 ants (uses the position datatype). *)
 g `!sys sys' sys'' sys''':10 system.
       sys' IN NEW_SYSTEM sys /\
       sys'' IN NEW_SYSTEM sys' /\
@@ -188,15 +222,21 @@ g `!sys sys' sys'' sys''':10 system.
       INVARIANT_STI (STI sys'')
       ==> INVARIANT_STI (STI sys''')`;;
 e (REWRITE_TAC[INVARIANT_STI]);;
-e (REWRITE_TAC[FORALL_SYSTEM_THM; FORALL_PAIR_THM; FORALL_VECTOR_THM;
-               ANT; STI; FORALL_POSITION_NUM_THM]);;
-e (REPEAT (GEN_TAC ORELSE DISCH_TAC));;
-e (POP_ASSUM MP_TAC);;
+e (REWRITE_TAC[FORALL_SYSTEM_THM; ANT; STI;
+               FORALL_ANT_THM; FORALL_VECTOR_THM]);;
+e (REPEAT GEN_TAC);;
 e VECTOR_REDUCE_TAC;;
-e (REWRITE_TAC[IN_NEW_SYSTEM_10; MAX; GSYM PP;
-    MESON [] `(if a then PP b else PP c) = PP (if a then b else c)`]);;
-e (POP_ASSUM_LIST (MP_TAC o end_itlist CONJ));;
+e (REWRITE_TAC[IN_NEW_SYSTEM_10; MAX; PP]);;
+e (REPEAT STRIP_TAC THEN UNDISCH_ALL_TAC);;
 let _,invariant_tm_10 = top_goal();;
+
+(* Statement for 10 ants (do not uses the position datatype). *)
+g (mk_forall_position invariant_tm_10);;
+e (REWRITE_TAC[FORALL_POSITION_NUM_THM; GSYM PP]);;
+e (REWRITE_TAC[MESON []
+     `(if a then PP b else PP c) = PP (if a then b else c)`]);;
+e (REPEAT STRIP_TAC THEN UNDISCH_ALL_TAC);;
+let _,invariant_nopos_tm_10 = top_goal();;
 
 (* ------------------------------------------------------------------------- *)
 (* Conterexample to the permanence of the invariant of the stigmergy.        *)
@@ -209,86 +249,101 @@ g `!sys sys' sys'':2 system.
       INVARIANT_STI (STI sys')
       ==> INVARIANT_STI (STI sys'')`;;
 e (REWRITE_TAC[INVARIANT_STI]);;
-e (REWRITE_TAC[FORALL_SYSTEM_THM; FORALL_PAIR_THM; FORALL_VECTOR_THM;
-               ANT; STI; FORALL_POSITION_NUM_THM]);;
-e (REPEAT (GEN_TAC ORELSE DISCH_TAC));;
-e (POP_ASSUM MP_TAC);;
+e (REWRITE_TAC[FORALL_SYSTEM_THM; ANT; STI;
+               FORALL_ANT_THM; FORALL_VECTOR_THM]);;
+e (REPEAT GEN_TAC);;
 e VECTOR_REDUCE_TAC;;
-e (REWRITE_TAC[IN_NEW_SYSTEM_2; MAX; GSYM PP;
-    MESON [] `(if a then PP b else PP c) = PP (if a then b else c)`]);;
-e (POP_ASSUM_LIST (MP_TAC o end_itlist CONJ));;
+e (REWRITE_TAC[IN_NEW_SYSTEM_2; MAX; PP]);;
+e (REPEAT STRIP_TAC THEN UNDISCH_ALL_TAC);;
 let _,counterex_tm_2 = top_goal();;
 
 (* ------------------------------------------------------------------------- *)
 (* Examples of simulation of the eveolution of the system.                   *)
 (* ------------------------------------------------------------------------- *)
 
-let run_conv (conv:conv) (tm:term) : term =
-  rhs (concl (conv tm));;
+(* let run_conv (conv:conv) (tm:term) : term =
+  rhs (concl (conv tm));; *)
 
-(* CPU time (user): 17.325485 *)
-let simul_tm_2 =
-  time (run_conv
-    (TOP_SWEEP_CONV num_CONV THENC
-     REWRITE_CONV[ITER; IN_SETBIND; IN_INSERT; NOT_IN_EMPTY] THENC
-     TOP_DEPTH_CONV UNWIND_CONV THENC
-     REWRITE_CONV[EXISTS_SYSTEM_THM; EXISTS_VECTOR_THM;
-       EXISTS_POSITION_NUM_THM;
-       EXISTS_PAIR_THM; IN_NEW_SYSTEM_2; GSYM PP;
-       GSYM RIGHT_EXISTS_AND_THM; LEFT_AND_EXISTS_THM;
-       MESON [] `(if a then PP b else PP c) = PP (if a then b else c)`]))
-    `System (Vx[(PP a1,d1); (PP a2,d2)])
-            (Vx[s1; s2; s3]) : 2 system
-     IN ITER 10 (SETBIND NEW_SYSTEM)
-                  {System (Vx[(P0,T); (P1,F)])
-                          (Vx[0; 0; 0]) : 2 system}`;;
+let ptm =
+  `System (Vx[(a1,d1); (a2,d2)])
+          (Vx[s1; s2; s3]) : 2 system
+   IN ITER 10 (SETBIND NEW_SYSTEM)
+                {System (Vx[(P0,T); (P1,F)])
+                        (Vx[0; 0; 0]) : 2 system}` in
+let vars = frees ptm in
+let goal = list_mk_exists(vars,ptm) in
+g goal;;
+e (CONV_TAC (TOP_SWEEP_CONV num_CONV));;
+e (REWRITE_TAC[ITER; IN_SETBIND; IN_INSERT; NOT_IN_EMPTY]);;
+e (CONV_TAC (TOP_DEPTH_CONV UNWIND_CONV));;
+e (REWRITE_TAC[LEFT_AND_EXISTS_THM; GSYM CONJ_ASSOC]);;
+e (REWRITE_TAC[EXISTS_SYSTEM_THM; EXISTS_VECTOR_THM; EXISTS_ANT_THM]);;
+e (REPEAT META_EXISTS_TAC);;
+e (REWRITE_TAC[IN_NEW_SYSTEM_2; PP; GSYM CONJ_ASSOC]);;
+let (_,simul_tm_2) = top_goal();;
+(* let tml = striplist dest_conj simul_tm_2;;
+filter (not o can sexp_of_term) tml;;
 
-let simul_tm_10 =
-  time (run_conv
-    (TOP_SWEEP_CONV num_CONV THENC
-     REWRITE_CONV[ITER; IN_SETBIND; IN_INSERT; NOT_IN_EMPTY] THENC
-     TOP_DEPTH_CONV UNWIND_CONV THENC
-     REWRITE_CONV[LEFT_AND_EXISTS_THM] THENC
-     REWRITE_CONV[EXISTS_SYSTEM_THM; EXISTS_VECTOR_THM;
-                  EXISTS_POSITION_NUM_THM;
-                  EXISTS_PAIR_THM; IN_NEW_SYSTEM_10; GSYM PP;
-      MESON [] `(if a then PP b else PP c) = PP (if a then b else c)`]))
-    `System (Vx[(PP a0,d0); (PP a1,d1); (PP a2,d2); (PP a3,d3); (PP a4,d4);
-                (PP a5,d5); (PP a6,d6); (PP a7,d7); (PP a8,d8); (PP a9,d9)])
-            (Vx[s1; s2; s3]) : 10 system
-     IN ITER 5 (SETBIND NEW_SYSTEM)
-                  {System (Vx[(P0,T); (P0,T); (P0,T); (P0,T); (P0,T);
-                              (P0,T); (P0,T); (P0,T); (P0,T); (P0,T)])
-                          (Vx[0; 0; 0]) : 10 system}`;;
+sexp_of_term simul_tm_2;; *)
 
-let simul_tm_10 =
-  time (run_conv (TOP_SWEEP_CONV
-                    (GEN_REWRITE_CONV I [GSYM RIGHT_EXISTS_AND_THM] THENC
-                     ONCE_REWRITE_CONV[CONJ_ASSOC])))
-       simul_tm_10;;
+let ptm =
+  `System (Vx[(a0,d0); (a1,d1); (a2,d2); (a3,d3); (a4,d4)])
+          (Vx[s1; s2; s3]) : 5 system
+   IN ITER 5 (SETBIND NEW_SYSTEM)
+                {System (Vx[(P0,T); (P0,T); (P0,T); (P0,T); (P0,T)])
+                        (Vx[0; 0; 0]) : 5 system}` in
+let vars = frees ptm in
+let goal = list_mk_exists(vars,ptm) in
+g goal;;
+e (CONV_TAC (TOP_SWEEP_CONV num_CONV));;
+e (REWRITE_TAC[ITER; IN_SETBIND; IN_INSERT; NOT_IN_EMPTY]);;
+e (CONV_TAC (TOP_DEPTH_CONV UNWIND_CONV));;
+e (REWRITE_TAC[LEFT_AND_EXISTS_THM; GSYM CONJ_ASSOC]);;
+e (REWRITE_TAC[EXISTS_SYSTEM_THM; EXISTS_VECTOR_THM; EXISTS_ANT_THM]);;
+e (REPEAT META_EXISTS_TAC);;
+e (REWRITE_TAC[IN_NEW_SYSTEM_5; PP; GSYM CONJ_ASSOC]);;
+let (_,simul_tm_5) = top_goal();;
+
+let ptm =
+  `System (Vx[(a0,d0); (a1,d1); (a2,d2); (a3,d3); (a4,d4);
+              (a5,d5); (a6,d6); (a7,d7); (a8,d8); (a9,d9)])
+          (Vx[s1; s2; s3]) : 10 system
+   IN ITER 5 (SETBIND NEW_SYSTEM)
+                {System (Vx[(P0,T); (P0,T); (P0,T); (P0,T); (P0,T);
+                            (P0,T); (P0,T); (P0,T); (P0,T); (P0,T)])
+                        (Vx[0; 0; 0]) : 10 system}` in
+let vars = frees ptm in
+let goal = list_mk_exists(vars,ptm) in
+g goal;;
+e (CONV_TAC (TOP_SWEEP_CONV num_CONV));;
+e (REWRITE_TAC[ITER; IN_SETBIND; IN_INSERT; NOT_IN_EMPTY]);;
+e (CONV_TAC (TOP_DEPTH_CONV UNWIND_CONV));;
+e (REWRITE_TAC[LEFT_AND_EXISTS_THM; GSYM CONJ_ASSOC]);;
+e (REWRITE_TAC[EXISTS_SYSTEM_THM; EXISTS_VECTOR_THM; EXISTS_ANT_THM]);;
+e (REPEAT META_EXISTS_TAC);;
+e (REWRITE_TAC[IN_NEW_SYSTEM_10; PP; GSYM CONJ_ASSOC]);;
+let (_,simul_tm_10) = top_goal();;
 
 (* ------------------------------------------------------------------------- *)
 (* Reachability.                                                             *)
 (* ------------------------------------------------------------------------- *)
 
-let reach_5 =
-  `(System (Vx[(PP a0,d0); (PP a1,d1); (PP a2,d2); (PP a3,d3); (PP a4,d4)])
+let ptm =
+  `System (Vx[(PP a0,d0); (PP a1,d1); (PP a2,d2); (PP a3,d3); (PP a4,d4)])
           (Vx[s1; s2; s3]) : 5 system
    IN ITER 5 (SETBIND NEW_SYSTEM)
                 {System (Vx[(P0,T); (P0,T); (P0,T); (P0,T); (P0,T)])
-                        (Vx[0; 0; 0]) : 5 system}) /\
+                        (Vx[0; 0; 0]) : 5 system} /\
    2 <= s1 /\
-   s2 + 3 <= s3`
-  |> TOP_SWEEP_CONV num_CONV THENC
-     REWRITE_CONV[ITER; IN_SETBIND; IN_INSERT; NOT_IN_EMPTY] THENC
-     TOP_DEPTH_CONV UNWIND_CONV THENC
-     REWRITE_CONV[LEFT_AND_EXISTS_THM] THENC
-     REWRITE_CONV[EXISTS_SYSTEM_THM; EXISTS_VECTOR_THM;
-                  EXISTS_POSITION_NUM_THM;
-                  EXISTS_PAIR_THM; IN_NEW_SYSTEM_5; GSYM PP;
-      MESON [] `(if a then PP b else PP c) = PP (if a then b else c)`] THENC
-      NUM_REDUCE_CONV
-  |> concl |> rand
-  |> TOP_SWEEP_CONV (GEN_REWRITE_CONV I [GSYM RIGHT_EXISTS_AND_THM] THENC
-                     ONCE_REWRITE_CONV[CONJ_ASSOC])
-  |> concl |> rand;;
+   s2 + 3 <= s3` in
+let vars = frees ptm in
+let goal = list_mk_exists(vars,ptm) in
+g goal;;
+e (CONV_TAC (TOP_SWEEP_CONV num_CONV));;
+e (REWRITE_TAC[ITER; IN_SETBIND; IN_INSERT; NOT_IN_EMPTY]);;
+e (CONV_TAC (TOP_DEPTH_CONV UNWIND_CONV));;
+e (REWRITE_TAC[LEFT_AND_EXISTS_THM; GSYM CONJ_ASSOC]);;
+e (REWRITE_TAC[EXISTS_SYSTEM_THM; EXISTS_VECTOR_THM; EXISTS_ANT_THM]);;
+e (REPEAT META_EXISTS_TAC);;
+e (REWRITE_TAC[IN_NEW_SYSTEM_10; PP; GSYM CONJ_ASSOC]);;
+let (_,reach_5) = top_goal();;
