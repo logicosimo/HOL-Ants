@@ -1,5 +1,5 @@
 (* ========================================================================= *)
-(* Experiments using SAT-SMT through the smtlib2 interface.                  *)
+(* SAT-SMT examples via the smtlib2 interface.                               *)
 (* ========================================================================= *)
 
 (* ------------------------------------------------------------------------- *)
@@ -23,13 +23,29 @@ sexp_of_term_net :=
 (* Genearate smtlib2 files.                                                  *)
 (* ------------------------------------------------------------------------- *)
 
-generate_smtlib2 (mk_neg invariant_tm_2) "smt2/invariant_2.smt2" false;;
-generate_smtlib2 (mk_neg invariant_tm_5) "smt2/invariant_2.smt2" false;;
-generate_smtlib2 (mk_neg invariant_tm_10) "smt2/invariant_10.smt2" false;;
-generate_smtlib2 (mk_neg counterex_tm_2) "smt2/counterex_2.smt2" true;;
-generate_smtlib2 simul_tm_2 "smt2/simul_2.smt2" true;;
-generate_smtlib2 simul_tm_10 "smt2/simul_10.smt2" true;;
-generate_smtlib2 simul_tm_10 "smt2/reach_5.smt2" true;;
+let use_position_datatype = ref false;;
+
+let write_sexps : string -> Sexplib.Sexp.t list -> unit =
+  let path = "/workspaces/hol-light-devcontainer/code/HOL-Ants/smt2" in
+  let declare_position_sexp =
+    sexp_mk_declare_datatype "position" ["P0"; "P1"; "P2"; "P3"; "P4"] in
+  fun fname sexps ->
+    let pathname = path^"/"^fname in
+    let declare_pos_sexps =
+      if !use_position_datatype then [declare_position_sexp] else [] in
+    write_sexps_to_file pathname (declare_pos_sexps @ sexps);;
+
+let prove_smt2 fname tm =  write_sexps fname (sexp_mk_prove tm);;
+let model_smt2 fname tm = write_sexps fname (sexp_mk_find_model tm);;
+
+prove_smt2 "invariant_2.smt2" invariant_tm_2;;
+prove_smt2 "invariant_2.smt2" invariant_tm_5;;
+prove_smt2 "invariant_10.smt2" invariant_tm_10;;
+prove_smt2 "counterex_2.smt2" counterex_tm_2;;
+
+model_smt2 "simul_2.smt2" simul_tm_2;;
+model_smt2 "simul_10.smt2" simul_tm_10;;
+model_smt2 "reach_5.smt2" simul_tm_10;;
 
 (* ------------------------------------------------------------------------- *)
 (* Minimal examples that fails (sometimes) with the OCaml Z3 interface.      *)

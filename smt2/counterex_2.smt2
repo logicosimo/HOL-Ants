@@ -85,6 +85,3 @@
      (> a (ite (<= a_1 c) c a_1)) (> a_2 (ite (<= a_3 c_1) c_1 a_3)))
     (> a_4 (ite (<= a_5 c_2) c_2 a_5))))))
 (check-sat)
-(get-value
- (a a_1 a_2 a_3 a_4 a_5 c c_1 c_2 p1 p1_1 p1_2 p1_3 p1_4 p1_5 p2 p2_1 p2_2
-  p2_3 p2_4 p2_5))

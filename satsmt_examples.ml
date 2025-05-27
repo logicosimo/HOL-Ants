@@ -1,5 +1,6 @@
 (* ========================================================================= *)
-(* Experiments with 5 or more ants usesing bintreevects.                     *)
+(* Construction of examples and problems designed to be solved using         *)
+(* SAT/SMT-based methods.                                                    *)
 (* ========================================================================= *)
 
 loadt "BinTreeVec/make.ml";;

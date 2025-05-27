@@ -297,6 +297,31 @@ let sexp_mk_get_values (vars : string list) : Sexplib.Sexp.t list =
 (* Procedure that outputs the SAT-SMT problem in a smtlib2 file.             *)
 (* ------------------------------------------------------------------------- *)
 
+let sexp_mk_check_formula (vars:term list) (ptm:term) : Sexplib.Sexp.t list =
+  let decl_sexps = map sexp_mk_declare_const vars in
+  let bound_sexps = mapfilter sexp_mk_assert_nonneg vars in
+  let assert_sexp = sexp_mk_fn "assert" [sexp_of_term ptm] in
+  let check_sexp = sexp_mk_fn "check-sat" [] in
+  decl_sexps @ bound_sexps @ [assert_sexp; check_sexp];;
+
+let sexp_mk_prove (ptm:term) : Sexplib.Sexp.t list =
+  let vars = sort (<) (frees ptm) in
+  sexp_mk_check_formula vars (mk_neg ptm);;
+
+let sexp_mk_find_model (ptm:term) : Sexplib.Sexp.t list =
+  let vars = sort (<) (frees ptm) in
+  let check_sexps = sexp_mk_check_formula vars ptm
+  and getvals_sexps = sexp_mk_get_values (map name_of vars) in
+  check_sexps @ getvals_sexps;;
+
+(*
+let generate_smtlib2 ptm fname getvals =
+  let getvals_sexps = sexp_mk_get_values (map name_of vars) in
+  let getvals_sexps = if getvals then getvals_sexps else [] in
+  let path = "/workspaces/hol-light-devcontainer/code/HOL-Ants" in
+  let pathname = path^"/"^fname in
+  write_sexps_to_file pathname sexps;;
+
 let generate_smtlib2 ptm fname getvals =
   let vars = sort (<) (frees ptm) in
   let decl_sexps = map sexp_mk_declare_const vars in
@@ -311,3 +336,4 @@ let generate_smtlib2 ptm fname getvals =
   let path = "/workspaces/hol-light-devcontainer/code/HOL-Ants" in
   let pathname = path^"/"^fname in
   write_sexps_to_file pathname sexps;;
+  *)

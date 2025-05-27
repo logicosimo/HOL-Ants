@@ -5,5 +5,5 @@ do
     out=$(basename "$fname" .smt2).out
     echo
     echo "Evaluating $fname. Output: $out"
-    time z3 $fname > $out
+    z3 $fname > $out
 done
