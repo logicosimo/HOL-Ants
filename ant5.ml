@@ -157,8 +157,6 @@ e (REWRITE_TAC[IN_NEW_SYSTEM_2; MAX; GSYM PP;
 e (POP_ASSUM_LIST (MP_TAC o end_itlist CONJ));;
 let _,invariant_tm_2 = top_goal();;
 
-generate_smtlib2 (mk_neg invariant_tm_2) "invariant_2.smt2";;
-
 (* Statement for 5 ants. *)
 g `!sys sys' sys'' sys''':5 system.
       sys' IN NEW_SYSTEM sys /\
@@ -178,8 +176,6 @@ e (REWRITE_TAC[IN_NEW_SYSTEM_5; MAX; GSYM PP;
      MESON [] `(if a then PP b else PP c) = PP (if a then b else c)`]);;
 e (POP_ASSUM_LIST (MP_TAC o end_itlist CONJ));;
 let _,invariant_tm_5 = top_goal();;
-
-generate_smtlib2 (mk_neg invariant_tm_5) "invariant_2.smt2";;
 
 (* Statement for 10 ants. *)
 g `!sys sys' sys'' sys''':10 system.
@@ -201,8 +197,6 @@ e (REWRITE_TAC[IN_NEW_SYSTEM_10; MAX; GSYM PP;
 e (POP_ASSUM_LIST (MP_TAC o end_itlist CONJ));;
 let _,invariant_tm_10 = top_goal();;
 
-generate_smtlib2 (mk_neg invariant_tm_10) "invariant_10.smt2";;
-
 (* ------------------------------------------------------------------------- *)
 (* Conterexample to the permanence of the invariant of the stigmergy.        *)
 (* ------------------------------------------------------------------------- *)
@@ -223,8 +217,6 @@ e (REWRITE_TAC[IN_NEW_SYSTEM_2; MAX; GSYM PP;
     MESON [] `(if a then PP b else PP c) = PP (if a then b else c)`]);;
 e (POP_ASSUM_LIST (MP_TAC o end_itlist CONJ));;
 let _,counterex_tm_2 = top_goal();;
-
-generate_smtlib2 (mk_neg counterex_tm_2) "counterex_2.smt2";;
 
 (* ------------------------------------------------------------------------- *)
 (* Examples of simulation of the eveolution of the system.                   *)
@@ -250,8 +242,6 @@ let simul_tm_2 =
                   {System (Vx[(P0,T); (P1,F)])
                           (Vx[0; 0; 0]) : 2 system}`;;
 
-generate_smtlib2 (mk_neg simul_tm_2) "simul_2.smt2";;
-
 let simul_tm_10 =
   time (run_conv
     (TOP_SWEEP_CONV num_CONV THENC
@@ -275,8 +265,6 @@ let simul_tm_10 =
                     (GEN_REWRITE_CONV I [GSYM RIGHT_EXISTS_AND_THM] THENC
                      ONCE_REWRITE_CONV[CONJ_ASSOC])))
        simul_tm_10;;
-
-generate_smtlib2 (mk_neg simul_tm_10) "simul_10.smt2";;
 
 (* ------------------------------------------------------------------------- *)
 (* Reachability.                                                             *)
@@ -303,4 +291,3 @@ let reach_5 =
                      ONCE_REWRITE_CONV[CONJ_ASSOC])
   |> concl |> rand;;
 
-generate_smtlib2 (mk_neg simul_tm_10) "simul_10.smt2";;
