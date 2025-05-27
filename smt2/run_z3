@@ -3,7 +3,12 @@
 for fname in *.smt2
 do
     out=$(basename "$fname" .smt2).out
+    expected=$(basename "$fname" .smt2).expected
     echo
-    echo "Evaluating $fname. Output: $out"
+    echo -n "Evaluating $fname. Output: $out ... "
     z3 $fname > $out
+    if cmp $out $expected
+    then echo "OK"
+    else echo "FAIL"
+    fi
 done
