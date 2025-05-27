@@ -7,6 +7,8 @@ prioritize_num();;
 loadt "/workspaces/hol-light-devcontainer/code/HOL-Ants/make.ml";;
 loadt "/workspaces/hol-light-devcontainer/code/HOL-Ants/more.ml";;
 loadt "/workspaces/hol-light-devcontainer/code/HOL-Ants/smtlib2.ml";;
+loadt "/workspaces/hol-light-devcontainer/code/HOL-Ants/ant5.ml";;
+loadt "/workspaces/hol-light-devcontainer/code/HOL-Ants/smtlib2_experiments.ml";;
 
 (*
 needs "/workspaces/hol-light-devcontainer/code/HOL-Ants/z3base.ml";;

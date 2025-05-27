@@ -287,7 +287,7 @@ let reach_5 =
                   EXISTS_PAIR_THM; IN_NEW_SYSTEM_5; GSYM PP;
       MESON [] `(if a then PP b else PP c) = PP (if a then b else c)`] THENC
       NUM_REDUCE_CONV
+  |> concl |> rand
   |> TOP_SWEEP_CONV (GEN_REWRITE_CONV I [GSYM RIGHT_EXISTS_AND_THM] THENC
                      ONCE_REWRITE_CONV[CONJ_ASSOC])
   |> concl |> rand;;
-
