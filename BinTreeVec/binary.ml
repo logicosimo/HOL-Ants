@@ -100,13 +100,24 @@ let NUM_ODD_BINARY = prove
 let NUM_BINARY_CASES_STRONG = prove
  (`!n. n = 0 \/ (?m. 0 < m /\ n = 2 * m) \/ (?m. n = 2 * m + 1)`,
   MATCH_MP_TAC BINARY_INDUCT THEN REWRITE_TAC[NUM_EQ_BINARY] THEN
-  CONJ_TAC THEN GEN_TAC THEN DISCH_THEN STRUCT_CASES_TAC THEN
-  REWRITE_TAC[NUM_EQ_BINARY] THEN
+  GEN_TAC THEN DISCH_THEN STRUCT_CASES_TAC THEN REWRITE_TAC[NUM_EQ_BINARY] THEN
   ASM_MESON_TAC[ARITH_RULE `(0 < m ==> 0 < 2 * m) /\ 0 < 2 * m + 1`]);;
 
 let NUM_CASES_BINARY = prove
  (`!n. n = 0 \/ (?m. n = 2 * m) \/ (?m. n = 2 * m + 1)`,
   MESON_TAC[NUM_BINARY_CASES_STRONG]);;
+
+let EXISTS_BINARY_THM = prove
+ (`!P. (?n. P n) <=> P 0 \/ (?n. 0 < n /\ P (2*n)) \/ (?n. P (2*n+1))`,
+  GEN_TAC THEN EQ_TAC THEN STRIP_TAC THEN
+  STRIP_ASSUME_TAC (SPEC `n:num` NUM_BINARY_CASES_STRONG) THEN
+  FIRST_X_ASSUM SUBST_VAR_TAC THEN ASM_MESON_TAC[]);;
+
+let FORALL_BINARY_THM = prove
+ (`!P. (!n. P n) <=> P 0 /\ (!n. 0 < n ==> P (2*n)) /\ (!n. P (2*n+1))`,
+  GEN_TAC THEN EQ_TAC THEN STRIP_TAC THEN ASM_REWRITE_TAC[] THEN GEN_TAC THEN
+  STRIP_ASSUME_TAC (SPEC `n:num` NUM_BINARY_CASES_STRONG) THEN
+  FIRST_X_ASSUM SUBST_VAR_TAC THEN ASM_MESON_TAC[]);;
 
 let FORALL_LT_BINARY = prove
  (`(!i. i < 0 ==> P i) /\
@@ -155,6 +166,35 @@ let FORALL_LE_BINARY = prove
    STRUCT_CASES_TAC (SPEC `i:num` NUM_CASES_BINARY) THEN
    REWRITE_TAC[NUM_LE_BINARY] THEN ASM_SIMP_TAC[] THEN
    POP_ASSUM (MP_TAC o SPEC `0`) THEN NUM_REDUCE_TAC THEN SIMP_TAC[LE_0]]);;
+
+let FORALL_LE_BIN = prove
+ (`(!n. (!i. i < NUMERAL n ==> P i) <=> (!i. i < n ==> P (NUMERAL i))) /\
+   ((!i. i <= _0 ==> P i) <=> P _0) /\
+   ((!i. i <= BIT0 n ==> P i) <=>
+    (!i. i <= n ==> P (BIT0 i)) /\ (!i. i < n ==> P (BIT1 i))) /\
+   ((!i. i <= BIT1 n ==> P i) <=>
+    (!i. i <= n ==> P (BIT0 i)) /\ (!i. i <= n ==> P (BIT1 i)))`,
+  CONJ_TAC THENL [REWRITE_TAC[NUMERAL]; ALL_TAC] THEN
+  CONV_TAC (ONCE_DEPTH_CONV BITS_ELIM_CONV) THEN
+  REWRITE_TAC[FORALL_LE_BINARY]);;
+
+let FORALL_LT_BIN = prove
+ (`(!n. (!i. i < NUMERAL n ==> P i) <=> (!i. i < n ==> P (NUMERAL i))) /\
+   (!i. i < _0 ==> P i) /\
+   (!n. (!i. i < BIT0 n ==> P i) <=>
+        (!i. i < n ==> P (BIT0 i)) /\ (!i. i < n ==> P (BIT1 i))) /\
+   (!n. (!i. i < BIT1 n ==> P i) <=>
+        (!i. i <= n ==> P (BIT0 i)) /\ (!i. i < n ==> P (BIT1 i)))`,
+  CONJ_TAC THENL [REWRITE_TAC[NUMERAL]; ALL_TAC] THEN
+  CONV_TAC (ONCE_DEPTH_CONV BITS_ELIM_CONV) THEN
+  REWRITE_TAC[FORALL_LT_BINARY]);;
+
+let FORALL_N_THM = prove
+ (`!P. (!i. 1 <= i /\ i <= n ==> P i) <=> (!i. i < n ==> P (SUC i))`,
+  GEN_TAC THEN EQ_TAC THENL
+  [MESON_TAC[ARITH_RULE `!n i. 1 <= SUC i /\ SUC i <= n <=> i < n`];
+   MESON_TAC[ARITH_RULE `1 <= i /\ i <= n
+                         ==> SUC (PRE i) = i /\ PRE i < n`]]);;
 
 (* ------------------------------------------------------------------------- *)
 (* Binary representation of numeric segments.                                *)

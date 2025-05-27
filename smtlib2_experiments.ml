@@ -11,9 +11,6 @@ let sexp_of_pp_eq =
             if rpp <> pp_tm then failwith "sexp_of_pp_eq" else
             sexp_of_term (mk_eq(i,j));;
 
-length it;;
-search[`int_of_num`; omit `int_of_num (NUMERAL n)`];;
-
 sexp_of_term_net :=
   enter [] (`PP i = PP j`,sexp_of_pp_eq) !sexp_of_term_net;;
 
@@ -110,26 +107,22 @@ let xtm =
 
 let ptm = xtm;;
 
-let sexp_mk_get_value (vars : string list) : Sexplib.Sexp.t list =
-  if vars = [] then [] else
-  [sexp_mk_fn "get-value" [sexp_mk_list (map sexp_mk_atom vars)]];;
-
 let ptm = mk_neg ptm;;
 
-let () =
+(* let () =
   let vars = sort (<) (frees ptm) in
   let decl_sexps = map sexp_mk_declare_const vars in
   let bound_sexps = mapfilter sexp_mk_assert_nonneg vars in
   let assert_sexp = sexp_mk_fn "assert" [sexp_of_term ptm] in
   let check_sexp = sexp_mk_fn "check-sat" [] in
-  let get_sexps = sexp_mk_get_value (map name_of vars) in
+  let get_sexps = sexp_mk_get_values (map name_of vars) in
   let sexps = decl_sexps @
               bound_sexps @
               [assert_sexp; check_sexp] @ get_sexps in
   let path = "/workspaces/hol-light-devcontainer/code/HOL-Ants" in
   let fname = "sim1.smt2" in
   let pathname = path^"/"^fname in
-  write_sexps_to_file pathname sexps;;
+  write_sexps_to_file pathname sexps;; *)
 
 (* let () =
   let datatype_sexp = sexp_mk_declare_datatype "Position"
