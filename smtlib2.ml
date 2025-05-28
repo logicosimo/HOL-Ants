@@ -64,7 +64,7 @@ let print_sexp sexp = pp_sexp Format.std_formatter;;
 let write_sexps_to_file filename sexps =
   let oc = open_out filename in
   let fmt = Format.formatter_of_out_channel oc in
-  List.iter (pp_sexp fmt) sexps;  (* List.iter instead of do_list *)
+  do_list (pp_sexp fmt) sexps;
   close_out oc;;
 
 (* ------------------------------------------------------------------------- *)
@@ -200,7 +200,7 @@ let sexp_of_cond tm =
   sexp_mk_fn "ite" [sexp_of_term b;
                     sexp_of_term s;
                     sexp_of_term t];;
-          
+
 (* ------------------------------------------------------------------------- *)
 (* Translation of quantifiers                                                *)
 (* ------------------------------------------------------------------------- *)
@@ -380,7 +380,7 @@ let sexp_mk_find_model (ptm:term) : Sexplib.Sexp.t list =
 (* ------------------------------------------------------------------------- *)
 (* File generation utilities                                                 *)
 (* ------------------------------------------------------------------------- *)
-(*Commented out for future improvements 
+(*Commented out for future improvements
 (** Generate SMT-LIB2 file for theorem proving *)
 let generate_prove_file ptm filename =
   let sexps = sexp_mk_prove ptm in
