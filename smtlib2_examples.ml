@@ -13,14 +13,14 @@
 
 let sexp_of_pp_eq =
   let pp_tm = `PP` in
-  fun tm -> 
+  fun tm ->
     let ltm, rtm = dest_eq tm in
     let lpp, i = dest_comb ltm in
     if lpp <> pp_tm then
-      failwith "sexp_of_pp_eq: left term not a PP application" 
+      failwith "sexp_of_pp_eq: left term not a PP application"
     else let rpp, j = dest_comb rtm in
-    if rpp <> pp_tm then 
-      failwith "sexp_of_pp_eq: right term not a PP application" 
+    if rpp <> pp_tm then
+      failwith "sexp_of_pp_eq: right term not a PP application"
     else sexp_of_term (mk_eq (i, j));;
 
 (* Register the custom PP equality handler in the translation network *)

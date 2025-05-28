@@ -23,12 +23,12 @@ let NSUM_NUMSEG_CONV : conv =
   REWRITE_CONV[ADD; GSYM ADD_ASSOC];;
 
 (* Pre-computed sum conversions for common ranges (performance optimization) *)
-let NSUM_5 = NSUM_NUMSEG_CONV `nsum (1..5) f`;;    
-let NSUM_6 = NSUM_NUMSEG_CONV `nsum (1..6) f`;;    
-let NSUM_7 = NSUM_NUMSEG_CONV `nsum (1..7) f`;;    
-let NSUM_8 = NSUM_NUMSEG_CONV `nsum (1..8) f`;;    
-let NSUM_9 = NSUM_NUMSEG_CONV `nsum (1..9) f`;;    
-let NSUM_10 = NSUM_NUMSEG_CONV `nsum (1..10) f`;;  
+let NSUM_5 = NSUM_NUMSEG_CONV `nsum (1..5) f`;;
+let NSUM_6 = NSUM_NUMSEG_CONV `nsum (1..6) f`;;
+let NSUM_7 = NSUM_NUMSEG_CONV `nsum (1..7) f`;;
+let NSUM_8 = NSUM_NUMSEG_CONV `nsum (1..8) f`;;
+let NSUM_9 = NSUM_NUMSEG_CONV `nsum (1..9) f`;;
+let NSUM_10 = NSUM_NUMSEG_CONV `nsum (1..10) f`;;
 
 (* ========================================================================= *)
 (* UTILITY FUNCTIONS FOR THEOREM MANIPULATION                                *)
@@ -37,7 +37,7 @@ let NSUM_10 = NSUM_NUMSEG_CONV `nsum (1..10) f`;;
 (* Create universal quantification over all position variables in a term *)
 let mk_forall_position =
   let position_ty = `:position` in
-  fun tm -> 
+  fun tm ->
     let fvars = frees tm in
     let vars = filter ((=) position_ty o type_of) fvars in
     list_mk_forall(vars,tm);;
@@ -49,7 +49,7 @@ let CONJ_LIST (thl : thm list) : thm =
 (* Variant of MP_TAC: adds the conjunction of a list of theorems as an
    antecedent to the conclusion of the goal                                  *)
 let LIST_MP_TAC (thl : thm list) : tactic =
-  try MP_TAC (CONJ_LIST thl) 
+  try MP_TAC (CONJ_LIST thl)
   with Failure _ -> ALL_TAC;;
 
 (* Move all assumptions to the goal as antecedents *)
@@ -171,7 +171,7 @@ let IN_NEW_SYSTEM_10 =
 (* STIGMERGY INVARIANT PRESERVATION GOALS                                    *)
 (* ========================================================================= *)
 
-(* Stating that the stigmergy invariant is preserved across 3 transition     *) 
+(* Stating that the stigmergy invariant is preserved across 3 transition     *)
 (* steps for a 2-ant system.                                                 *)
 
 (* Version using position datatype. *)
@@ -288,7 +288,7 @@ let _,counterex_tm_2 = top_goal();;
 (* let run_conv (conv:conv) (tm:term) : term =
   rhs (concl (conv tm));; *)
 
-(* 2-ant system simulation: 10 evolution steps from an initial configuration *)  
+(* 2-ant system simulation: 10 evolution steps from an initial configuration *)
 let ptm =
   `System (Vx[(a1,d1); (a2,d2)])
           (Vx[s1; s2; s3]) : 2 system
