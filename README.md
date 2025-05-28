@@ -8,8 +8,8 @@ We formally verify in HOL Light the convergence of the ant colony on the shortes
 
 ## Associated papers
 
-- Maggesi, M. and Perini Brogi, C., 2024. Rigorous Analysis of Idealised Pathfinding Ants in Higher-Order Logic. To appear in AISoLA 2024, Springer Lecture Notes in Computer Science ([HAL Preprint online](https://hal.science/hal-04620418/))
-- Perini Brogi, C. and Maggesi, M., 2024. Analysing Collective Adaptive Systems by Proving Theorems. To appear in REoCAS Colloquium 2024, Springer Lecture Notes in Computer Science
+- Maggesi, M., Perini Brogi, C. (2025). Rigorous Analysis of Idealised Pathfinding Ants in Higher-Order Logic. In: Margaria, T., Steffen, B. (eds) Leveraging Applications of Formal Methods, Verification and Validation. Rigorous Engineering of Collective Adaptive Systems. ISoLA 2024. Lecture Notes in Computer Science, vol 15220. Springer, Cham.  [https://doi.org/10.1007/978-3-031-75107-3_18](https://doi.org/10.1007/978-3-031-75107-3_18)
+- Perini Brogi, C., Maggesi, M. (2025). Analysing Collective Adaptive Systems by Proving Theorems. In: Margaria, T., Steffen, B. (eds) Leveraging Applications of Formal Methods, Verification and Validation. REoCAS Colloquium in Honor of Rocco De Nicola. ISoLA 2024. Lecture Notes in Computer Science, vol 15219. Springer, Cham. [https://doi.org/10.1007/978-3-031-73709-1_14](https://doi.org/10.1007/978-3-031-73709-1_14)
 
 ## How to run the code
 
