@@ -4,7 +4,11 @@ This repository contains a detailed, principled model in HOL Light simulating fo
 
 The model is designed to explore long-term dynamics based on pheromone release and tracking. 
 
-We formally verify in HOL Light the convergence of the ant colony on the shortest path to a food source during foraging activities. 
+We formally verify in HOL Light the convergence of the ant colony on the shortest path to a food source during foraging activities.
+
+To enhance the performance of simulations, we introduce an interface between HOL Light terms and expressions of SMT-LIB2 to bridge proof contraints with SMT problems.
+
+Some examples of translations from HOL Light goals to resolution statements about colony dynamics are collected in the folder `smt2`.
 
 ## Associated papers
 
@@ -23,4 +27,4 @@ We formally verify in HOL Light the convergence of the ant colony on the shortes
    loadt "make.ml";;
    ```
 
-(c) Marco Maggesi and Cosimo Perini Brogi, 2023-2024
+(c) Marco Maggesi and Cosimo Perini Brogi, 2023-2025
