@@ -18,13 +18,14 @@ Some examples of translations from HOL Light goals to resolution statements abou
 ## How to run the code
 
 1. Start HOL Light.
-2. Add this directory to the `load_path` (replace "/path/to/HOL-Ants" with the actual path):
+2. Adjust the value of hol_ants_path in file load.ml
+    (replace "/path/to/HOL-Ants" with the actual path):
    ```
-   load_path := "/path/to/HOL-Ants" :: !load_path;;
+   let hol_ants_path = "/path/to/HOL-Ants";;
    ```
-3. Load make.ml:
+3. Load load.ml:
    ```
-   loadt "make.ml";;
+   loadt "load.ml";;
    ```
 
 (c) Marco Maggesi and Cosimo Perini Brogi, 2023-2025

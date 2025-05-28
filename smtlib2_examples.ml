@@ -42,11 +42,11 @@ sexp_of_term_net :=
 let use_position_datatype = ref true;;
 
 let write_sexps : string -> Sexplib.Sexp.t list -> unit =
-  let path = "/workspaces/hol-light-devcontainer/code/HOL-Ants/smt2" in (*V?*)
+  let path = hol_ants_path^"/smt2" in
   let declare_position_sexp =
     sexp_mk_declare_datatype "Position" ["P0"; "P1"; "P2"; "P3"; "P4"] in
   fun fname sexps ->
-    let pathname = Filename.concat path fname in  (* Diff path construction *)
+    let pathname = Filename.concat path fname in
     let declare_pos_sexps =
       if !use_position_datatype then [declare_position_sexp] else [] in
     write_sexps_to_file pathname (declare_pos_sexps @ sexps);;
@@ -74,7 +74,7 @@ model_smt2 "simul_10.smt2" simul_tm_10;;
 
 model_smt2 "counterex_2.smt2" counterex_tm_2;;
 
-model_smt2 "reach_5.smt2" simul_tm_10;; (*Mistake?*)
+model_smt2 "reach_5.smt2" reach_5;;
 
 (* ------------------------------------------------------------------------- *)
 (* Generate SMT-LIB2 files without position datatype declarations.           *)

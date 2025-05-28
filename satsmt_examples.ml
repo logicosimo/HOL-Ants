@@ -354,7 +354,7 @@ let (_,simul_tm_10) = top_goal();;
 (* Reachability problem: Can the system reach a state satisfying specific    *)
 (* constraints on stigmergy values?                                          *)
 let ptm =
-  `System (Vx[(PP a0,d0); (PP a1,d1); (PP a2,d2); (PP a3,d3); (PP a4,d4)])
+  `System (Vx[(a0,d0); (a1,d1); (a2,d2); (a3,d3); (a4,d4)])
           (Vx[s1; s2; s3]) : 5 system
    IN ITER 5 (SETBIND NEW_SYSTEM)
                 {System (Vx[(P0,T); (P0,T); (P0,T); (P0,T); (P0,T)])
@@ -370,5 +370,6 @@ e (CONV_TAC (TOP_DEPTH_CONV UNWIND_CONV));;
 e (REWRITE_TAC[LEFT_AND_EXISTS_THM; GSYM CONJ_ASSOC]);;
 e (REWRITE_TAC[EXISTS_SYSTEM_THM; EXISTS_VECTOR_THM; EXISTS_ANT_THM]);;
 e (REPEAT META_EXISTS_TAC);;
-e (REWRITE_TAC[IN_NEW_SYSTEM_5; PP; GSYM CONJ_ASSOC]);;
+e (REWRITE_TAC[IN_NEW_SYSTEM_5; PP; GSYM CONJ_ASSOC; POSITION_DISTINCTNESS]);;
+e NUM_REDUCE_TAC;;
 let (_,reach_5) = top_goal();;
