@@ -46,7 +46,8 @@ let mk_forall_position =
 let CONJ_LIST (thl : thm list) : thm =
   try end_itlist CONJ thl with Failure _ -> failwith "CONJ_LIST";;
 
-(* Apply modus ponens to a list of theorems as a tactic *)
+(* Variant of MP_TAC: adds the conjunction of a list of theorems as an
+   antecedent to the conclusion of the goal                                  *)
 let LIST_MP_TAC (thl : thm list) : tactic =
   try MP_TAC (CONJ_LIST thl) 
   with Failure _ -> ALL_TAC;;
