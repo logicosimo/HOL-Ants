@@ -5,44 +5,57 @@
 
 loadt "BinTreeVec/make.ml";;
 
-(* ------------------------------------------------------------------------- *)
-(* Conversion for sums of nums and some frequently used instances.           *)
-(* ------------------------------------------------------------------------- *)
+(* ========================================================================= *)
+(* NUMERICAL SUMMATION CONVERSIONS                                           *)
+(* ========================================================================= *)
 
+(* Conversion for sums of numbers over segments and frequently used instances*)
 let NSUM_NUMSEG_CONV : conv =
   let ONCE_NSUM_NUMSEG_CONV : conv =
+    (* Apply numerical conversion to the range bounds *)
     (LAND_CONV (RAND_CONV (TRY_CONV num_CONV))) THENC
+    (* Rewrite using numerical sum clauses for segments *)
     GEN_REWRITE_CONV I [NSUM_CLAUSES_NUMSEG] THENC
+    (* Perform numerical reduction *)
     NUM_REDUCE_CONV in
+  (* Apply the conversion top-down and normalize addition *)
   TOP_SWEEP_CONV ONCE_NSUM_NUMSEG_CONV THENC
   REWRITE_CONV[ADD; GSYM ADD_ASSOC];;
 
-let NSUM_5 = NSUM_NUMSEG_CONV `nsum (1..5) f`;;
-let NSUM_6 = NSUM_NUMSEG_CONV `nsum (1..6) f`;;
-let NSUM_7 = NSUM_NUMSEG_CONV `nsum (1..7) f`;;
-let NSUM_8 = NSUM_NUMSEG_CONV `nsum (1..8) f`;;
-let NSUM_9 = NSUM_NUMSEG_CONV `nsum (1..9) f`;;
-let NSUM_10 = NSUM_NUMSEG_CONV `nsum (1..10) f`;;
+(* Pre-computed sum conversions for common ranges (performance optimization) *)
+let NSUM_5 = NSUM_NUMSEG_CONV `nsum (1..5) f`;;    
+let NSUM_6 = NSUM_NUMSEG_CONV `nsum (1..6) f`;;    
+let NSUM_7 = NSUM_NUMSEG_CONV `nsum (1..7) f`;;    
+let NSUM_8 = NSUM_NUMSEG_CONV `nsum (1..8) f`;;    
+let NSUM_9 = NSUM_NUMSEG_CONV `nsum (1..9) f`;;    
+let NSUM_10 = NSUM_NUMSEG_CONV `nsum (1..10) f`;;  
 
-(* ------------------------------------------------------------------------- *)
-(* Heterogeneous tools.                                                      *)
-(* ------------------------------------------------------------------------- *)
+(* ========================================================================= *)
+(* UTILITY FUNCTIONS FOR THEOREM MANIPULATION                                *)
+(* ========================================================================= *)
 
+(* Create universal quantification over all position variables in a term *)
 let mk_forall_position =
   let position_ty = `:position` in
-  fun tm -> let fvars = frees tm in
-            let vars = filter ((=) position_ty o type_of) fvars in
-            list_mk_forall(vars,tm);;
+  fun tm -> 
+    let fvars = frees tm in
+    let vars = filter ((=) position_ty o type_of) fvars in
+    list_mk_forall(vars,tm);;
+
 
 let CONJ_LIST (thl : thm list) : thm =
   try end_itlist CONJ thl with Failure _ -> failwith "CONJ_LIST";;
 
+(* Apply modus ponens to a list of theorems as a tactic *)
 let LIST_MP_TAC (thl : thm list) : tactic =
-  try MP_TAC (CONJ_LIST thl) with Failure _ -> ALL_TAC;;
+  try MP_TAC (CONJ_LIST thl) 
+  with Failure _ -> ALL_TAC;;
 
+(* Move all assumptions to the goal as antecedents *)
 let UNDISCH_ALL_TAC : tactic =
   POP_ASSUM_LIST (LIST_MP_TAC o rev);;
 
+(* Theorems for handling ant pairs (position, direction) *)
 let FORALL_ANT_THM = prove
  (`!P. (!x. P x) <=> (!pos:position dir:bool. P (pos,dir))`,
   MATCH_ACCEPT_TAC FORALL_PAIR_THM);;
@@ -51,10 +64,15 @@ let EXISTS_ANT_THM = prove
  (`!P. (?x. P x) <=> (?pos:position dir:bool. P (pos,dir))`,
   MATCH_ACCEPT_TAC EXISTS_PAIR_THM);;
 
+(* ========================================================================= *)
+(* SYSTEM DEFINITIONS FOR DIFFERENT ANT COLONY SIZES                         *)
+(* ========================================================================= *)
+
 (* ------------------------------------------------------------------------- *)
-(* System of 2 ants.                                                         *)
+(* System of 2 ants: Minimal system for basic verifications                  *)
 (* ------------------------------------------------------------------------- *)
 
+(* Delta stigmergy component for 2-ant system *)
 let DELTA_STI_2 =
   let th = INST_TYPE [`:2`,`:N`] DELTA_STI_COMPONENT_ALT in
   let th = REWRITE_RULE[FORALL_VECTOR_THM; FORALL_N_THM;
@@ -62,6 +80,7 @@ let DELTA_STI_2 =
                         DIMINDEX_CONV `dimindex(:2)`; NSUM_2; PP] th in
   CONV_RULE (ONCE_DEPTH_CONV VECTOR_REDUCE_CONV) th;;
 
+(* System evolution rule for 2-ant system *)
 let IN_NEW_SYSTEM_2 =
   let th = INST_TYPE [`:2`,`:N`] IN_NEW_SYSTEM_ALT in
   let th = REWRITE_RULE[FORALL_SYSTEM_THM; FORALL_PAIR_THM; FORALL_VECTOR_THM;
@@ -100,7 +119,7 @@ let IN_NEW_SYSTEM_3 =
   REWRITE_RULE[] th;;
 
 (* ------------------------------------------------------------------------- *)
-(* System of 5 ants.                                                         *)
+(* System of 5 ants: Medium-scale system for behaviour analysis              *)
 (* ------------------------------------------------------------------------- *)
 
 let DELTA_STI_5 =
@@ -124,7 +143,7 @@ let IN_NEW_SYSTEM_5 =
   REWRITE_RULE[] th;;
 
 (* ------------------------------------------------------------------------- *)
-(* System of 10 ants.                                                        *)
+(* System of 10 ants: Large system for performance testing                   *)
 (* ------------------------------------------------------------------------- *)
 
 let DELTA_STI_10 =
@@ -147,11 +166,14 @@ let IN_NEW_SYSTEM_10 =
   let th = REWRITE_RULE[DELTA_STI_10] th in
   REWRITE_RULE[] th;;
 
-(* ------------------------------------------------------------------------- *)
-(* Proof of the permanence of the invariant of the stigmergy.                *)
-(* ------------------------------------------------------------------------- *)
+(* ========================================================================= *)
+(* STIGMERGY INVARIANT PRESERVATION GOALS                                    *)
+(* ========================================================================= *)
 
-(* Statement for 2 ants (uses the position datatype). *)
+(* Stating that the stigmergy invariant is preserved across 3 transition     *) 
+(* steps for a 2-ant system.                                                 *)
+
+(* Version using position datatype. *)
 g `!sys sys' sys'' sys''':2 system.
       sys' IN NEW_SYSTEM sys /\
       sys'' IN NEW_SYSTEM sys' /\
@@ -178,7 +200,7 @@ e UNDISCH_ALL_TAC;;
 e (REWRITE_TAC[IN_NEW_SYSTEM_2; MAX; PP]);;
 let _,invariant_tm_2 = top_goal();;
 
-(* Statement for 2 ants (do not uses the position datatype). *)
+(* Version without position datatype for simpler SMT encoding *)
 g (mk_forall_position invariant_tm_2);;
 e (REWRITE_TAC[FORALL_POSITION_NUM_THM; GSYM PP]);;
 e (REWRITE_TAC[MESON []
@@ -186,7 +208,7 @@ e (REWRITE_TAC[MESON []
 e (REPEAT STRIP_TAC THEN UNDISCH_ALL_TAC);;
 let _,invariant_nopos_tm_2 = top_goal();;
 
-(* Statement for 5 ants (uses the position datatype). *)
+(* Similar goals for 5-ant system *)
 g `!sys sys' sys'' sys''':5 system.
       sys' IN NEW_SYSTEM sys /\
       sys'' IN NEW_SYSTEM sys' /\
@@ -204,7 +226,6 @@ e (REWRITE_TAC[IN_NEW_SYSTEM_5; MAX; PP]);;
 e (REPEAT STRIP_TAC THEN UNDISCH_ALL_TAC);;
 let _,invariant_tm_5 = top_goal();;
 
-(* Statement for 5 ants (do not uses the position datatype). *)
 g (mk_forall_position invariant_tm_5);;
 e (REWRITE_TAC[FORALL_POSITION_NUM_THM; GSYM PP]);;
 e (REWRITE_TAC[MESON []
@@ -212,7 +233,7 @@ e (REWRITE_TAC[MESON []
 e (REPEAT STRIP_TAC THEN UNDISCH_ALL_TAC);;
 let _,invariant_nopos_tm_5 = top_goal();;
 
-(* Statement for 10 ants (uses the position datatype). *)
+(* Similar goals for 10-ant system *)
 g `!sys sys' sys'' sys''':10 system.
       sys' IN NEW_SYSTEM sys /\
       sys'' IN NEW_SYSTEM sys' /\
@@ -230,7 +251,6 @@ e (REWRITE_TAC[IN_NEW_SYSTEM_10; MAX; PP]);;
 e (REPEAT STRIP_TAC THEN UNDISCH_ALL_TAC);;
 let _,invariant_tm_10 = top_goal();;
 
-(* Statement for 10 ants (do not uses the position datatype). *)
 g (mk_forall_position invariant_tm_10);;
 e (REWRITE_TAC[FORALL_POSITION_NUM_THM; GSYM PP]);;
 e (REWRITE_TAC[MESON []
@@ -238,9 +258,12 @@ e (REWRITE_TAC[MESON []
 e (REPEAT STRIP_TAC THEN UNDISCH_ALL_TAC);;
 let _,invariant_nopos_tm_10 = top_goal();;
 
-(* ------------------------------------------------------------------------- *)
-(* Conterexample to the permanence of the invariant of the stigmergy.        *)
-(* ------------------------------------------------------------------------- *)
+(* ========================================================================= *)
+(* COUNTEREXAMPLE SEARCH                                                     *)
+(* ========================================================================= *)
+
+(* Search for counterexamples to invariant preservation with only 2 steps.   *)
+(* This explores whether the invariant can be violated.                      *)
 
 g `!sys sys' sys'':2 system.
       sys' IN NEW_SYSTEM sys /\
@@ -257,13 +280,14 @@ e (REWRITE_TAC[IN_NEW_SYSTEM_2; MAX; PP]);;
 e (REPEAT STRIP_TAC THEN UNDISCH_ALL_TAC);;
 let _,counterex_tm_2 = top_goal();;
 
-(* ------------------------------------------------------------------------- *)
-(* Examples of simulation of the eveolution of the system.                   *)
-(* ------------------------------------------------------------------------- *)
+(* ========================================================================= *)
+(* SYSTEM EVOLUTION SIMULATION EXAMPLES                                      *)
+(* ========================================================================= *)
 
 (* let run_conv (conv:conv) (tm:term) : term =
   rhs (concl (conv tm));; *)
 
+(* 2-ant system simulation: 10 evolution steps from an initial configuration *)  
 let ptm =
   `System (Vx[(a1,d1); (a2,d2)])
           (Vx[s1; s2; s3]) : 2 system
@@ -281,11 +305,8 @@ e (REWRITE_TAC[EXISTS_SYSTEM_THM; EXISTS_VECTOR_THM; EXISTS_ANT_THM]);;
 e (REPEAT META_EXISTS_TAC);;
 e (REWRITE_TAC[IN_NEW_SYSTEM_2; PP; GSYM CONJ_ASSOC]);;
 let (_,simul_tm_2) = top_goal();;
-(* let tml = striplist dest_conj simul_tm_2;;
-filter (not o can sexp_of_term) tml;;
 
-sexp_of_term simul_tm_2;; *)
-
+(* 5-ant system simulation: 5 evolution steps from foraging start *)
 let ptm =
   `System (Vx[(a0,d0); (a1,d1); (a2,d2); (a3,d3); (a4,d4)])
           (Vx[s1; s2; s3]) : 5 system
@@ -304,6 +325,7 @@ e (REPEAT META_EXISTS_TAC);;
 e (REWRITE_TAC[IN_NEW_SYSTEM_5; PP; GSYM CONJ_ASSOC]);;
 let (_,simul_tm_5) = top_goal();;
 
+(* 10-ant system simulation: Large-scale evolution from foraging start *)
 let ptm =
   `System (Vx[(a0,d0); (a1,d1); (a2,d2); (a3,d3); (a4,d4);
               (a5,d5); (a6,d6); (a7,d7); (a8,d8); (a9,d9)])
@@ -324,10 +346,12 @@ e (REPEAT META_EXISTS_TAC);;
 e (REWRITE_TAC[IN_NEW_SYSTEM_10; PP; GSYM CONJ_ASSOC]);;
 let (_,simul_tm_10) = top_goal();;
 
-(* ------------------------------------------------------------------------- *)
-(* Reachability.                                                             *)
-(* ------------------------------------------------------------------------- *)
+(* ========================================================================= *)
+(* REACHABILITY ANALYSIS                                                     *)
+(* ========================================================================= *)
 
+(* Reachability problem: Can the system reach a state satisfying specific    *)
+(* constraints on stigmergy values?                                          *)
 let ptm =
   `System (Vx[(PP a0,d0); (PP a1,d1); (PP a2,d2); (PP a3,d3); (PP a4,d4)])
           (Vx[s1; s2; s3]) : 5 system
